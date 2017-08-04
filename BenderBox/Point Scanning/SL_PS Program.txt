@@ -1,0 +1,534 @@
+// Pointscan Analysis Procedure (SL 3/1/2015)
+//  > Procedure used to analyse differences in calcium transients between nearby locations along the AIS
+//  > Works with Prarie-generated pointscan data folders
+
+//Main//------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Function Make_Pointscan_Window()
+
+// global variables
+string/G folder_path =  "enter path here"	//name of path for point scans
+string/G point_order = "seperate points with a semicolon" // default is "seperate points with a semicolon" 
+variable/G num_points = 5 // default number of points is 5
+variable/G num_rep = 20 // default number of repetitions is 20
+variable/G data_points = 2500 // default number of data points s 2500
+variable/G smooth_factor = 40 // default number of smooth_factor is 40
+variable/G num_remove = 0 // default number of repetitions to remove is 0
+variable/G peak_avg_dist = 10 // default number is 10
+
+// make and name window
+NewPanel/W=(10, 50, 550, 325)
+DoWindow/C Pointscan_Analysis
+
+// make window parts
+Drawtext 10, 18, "Specify path for Pointscan csv parent folder"
+SetVariable point_scan_folder_sv pos={10,25}, size={450,25}, title="Path", value=folder_path, fsize=10
+Button Calc_GoverR, pos = {30, 47}, title = "Sort and Compute", size = {100, 25}, proc = S_C
+Button Kill, pos = {150, 47}, title = "Kill", size = {40, 25}, proc = K
+SetVariable num_points_sv pos={210,50}, size={135,25}, title="# points (1-100)", value=num_points, fsize=10
+SetVariable data_points_sv pos={210,70}, size={135,25}, title="# of data points", value=data_points, fsize=10
+SetVariable num_rep_sv pos={393,50}, size={132,25}, title="# of repetitions", value=num_rep, fsize=10
+SetVariable num_remove_sv pos={372,70}, size={153,25}, title="# of reps to remove", value=num_remove, fsize=10
+
+Drawline 7, 105, 527, 105
+Drawline 7, 107, 527, 107
+
+Button Disp_GoverR, pos = {30, 117}, title = "Display", size = {65, 25}, proc = D
+Button Disp_GoverR_s, pos = {115, 117}, title = "Smooth", size = {80, 25}, proc = D_s
+Button Disp_GoverR_n, pos = {215, 117}, title = "Normalize", size = {80, 25}, proc = D_n
+SetVariable smooth_factor_sv pos={420,117}, size={105,25}, title="smooth #", value=smooth_factor, fsize=10
+
+Drawline 7, 152, 527, 152
+Drawline 7, 154, 527, 154
+
+SetVariable point_order_sv pos={10,169}, size={450,25}, title="Point Order", value=point_order, fsize=10
+Button Hot_spot_b, pos = {30, 191}, title = "Hot spot?", size = {80, 25}, proc = hs_f
+SetVariable peak_avg_dist_sv pos={120,191}, size={200,25}, title="average-over distance", value=peak_avg_dist, fsize=10
+
+Drawline 7, 225, 527, 225
+Drawline 7, 227, 527, 227
+
+Button Disp_RvsT, pos = {30, 237}, title = "Display Red vs. Time", size = {125, 25}, proc = D_RvT
+
+end
+
+//Button Functions//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+// sort and compute button
+Function S_C(ctrlname)
+string ctrlname
+Sort_folder()
+Compute_GoverR()
+end
+
+// display button
+Function D(ctrlname)
+string ctrlname
+Display_GoverR()
+end
+
+// display smoothed button
+Function D_s(ctrlname)
+string ctrlname
+Display_GoverR_smoothed()
+end
+
+// display normalized button
+Function D_n(ctrlname)
+string ctrlname
+Display_GoverR_normalize()
+end
+
+// hot spot button
+Function hs_f(ctrlname)
+string ctrlname
+hs()
+end
+
+// display red over time button
+Function D_RvT(ctrlname)
+string ctrlname
+Display_RvsT()
+end
+
+// kill button
+Function K(ctrlname)
+string ctrlname
+Kill()
+end
+
+//Sort Function//---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Function Sort_folder()
+	
+// locally defined global variables
+SVAR folder_path
+NVAR num_points
+
+// local variables
+variable n, i, index, current_point
+string csv_file_list, current_file, csv_path
+NewPath/O/Q sym_path_folder_path, folder_path
+
+// create (number of points) new directories	
+for (n=1; n<(num_points+1); n+=1)	
+	NewPath/Z/O/Q/C csv_path, folder_path+"\\point"+num2str(n) 	
+endfor
+
+// create semicolon seperated list of csv file names to sort into the new directories created above
+csv_file_list = IndexedFile(sym_path_folder_path, -1, ".csv")
+	
+// move the csv files into the corresponding point folders
+for(n=0; n<(ItemsInList(csv_file_list, ";")/num_points); n+=1)
+	for (i=0; i<num_points; i +=1)
+		index = (n*num_points) + i
+		current_point = i+1
+		current_file = StringFromList(index,csv_file_list)
+		MoveFile /D folder_path + "\\" + current_file as folder_path + "\\point" + num2str(current_point)
+	endfor
+endfor
+	
+end
+
+
+//Compute G over R Function//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Function Compute_GoverR()
+
+// globally defined local variables
+NVAR data_points	
+
+// local variables
+variable n, n2, n3, n4, n5, timestamp_index = 0
+string csv_file_list, g_over_r_name, current_file
+	
+// make a wave to hold time values
+Make/D/N=(data_points) ti_me
+
+for (n=1; n<(num_points+1); n+=1)
+	
+	// make a wave to hold g over r values
+	Make/D/N=(data_points) sum_name
+	
+	// make a wave to hold r values 
+	Wave red_over_time
+	
+	// get path to point n folder
+	NewPath/Z/O point_path, folder_path+"\\point"+num2str(n) 	
+		if(V_flag !=0)
+			DoAlert 0, "Path not found."
+			Return 0
+		endif
+
+	// create ; seperated list of csv file names
+	csv_file_list = IndexedFile(point_path, -1, ".csv")
+
+	// go through each file and load red and green, then caculate green/red and add to point n g/r sum
+	for (n2=0; n2<ItemsInList(csv_file_list, ";") - num_remove; n2+=1)
+		current_file = StringFromList(n2,csv_file_list)
+		LoadWave/Q/J/O/A/B="N=time_stamp; N=Red; N=Green; N=nothing; N=G_over_R;"/P= point_path current_file
+		wave G_over_R
+		wave Red
+		wave Green
+		wave time_stamp
+		Make/D/N=(data_points)/O red_over_time_temp
+
+		if (n==1)
+			for(n4=0; n4<data_points; n4+=1)
+				G_over_R[n4] = Green[n4+2]/Red[n4+2]
+				sum_name[n4] = sum_name[n4] + G_over_R[n4]
+				red_over_time_temp[n4] = Red[n4+2]
+			endfor
+					
+		else
+			for(n4=0; n4<data_points; n4+=1)
+				G_over_R[n4] = Green[n4+2500]/Red[n4+2500]
+				sum_name[n4] = sum_name[n4] + G_over_R[n4]
+				red_over_time_temp[n4] = Red[n4+2500]
+			endfor		
+		endif
+		
+		// concatenate red fluorescence data to existing wave to generate a wave of red fluorescence over time 
+		Concatenate/KILL/NP {red_over_time_temp}, red_over_time
+
+	endfor
+
+	if (timestamp_index == 0)
+		for(n5=0; n5<data_points; n5+=1)
+			ti_me[n5] = time_stamp[n5]
+		endfor
+		timestamp_index += 1
+	endif
+	
+	killwaves/Z G_over_R, Red, Green, time_stamp, nothing
+		
+	// divide point n g/r sum by number of repetitions
+	for(n4=0; n4<data_points; n4+=1)
+		sum_name[n4] = sum_name[n4]/ItemsInList(csv_file_list, ";")
+	endfor
+	
+	// rename waves to point specific name
+	Rename sum_name, $("G_over_R_" + num2str(n))
+	Rename red_over_time, $("R_vs_time_" + num2str(n))
+	
+endfor
+end
+
+//Display G over R Function//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Function Display_GoverR()
+
+// locally defined global variables
+NVAR num_points
+
+// local variables
+string G_over_R_list, G_over_R_list_all, color_list
+variable n
+
+// waves
+wave ti_me
+
+// make a list of G_over_R waves
+G_over_R_list = Wavelist("G_over_R_*", ";","")
+
+// make a list of all G_over_R_waves including smoothed and normalized
+G_over_R_list_all = Wavelist("*G_over_R*", ";","")
+
+// create a 3xnum_points matrix of colors
+ColorTab2Wave Rainbow
+wave M_colors
+
+//check if graph is already made
+DoWindow G_over_R_Average
+
+// if the graph does not exist then create it
+if (V_flag ==0)
+	Display/W=(440, 50, 940, 450) as "G_over_R_average"
+	for (n=0; n<num_points; n+=1)
+		AppendtoGraph/C=(M_colors[round(n*(100/num_points))][0],M_colors[round(n*(100/num_points))][1],M_colors[round(n*(100/num_points))][2]) $StringFromList(n,G_over_R_list) vs ti_me
+	endfor
+	DoWindow/C G_over_R_Average
+
+// if the graph already exist then change it
+else
+	
+	// remove all trace on the graph
+	for(n=0; n<ItemsInList(G_over_R_list_all, ";"); n+=1)
+		RemoveFromGraph/Z/W=G_over_R_average $StringFromList(n,G_over_R_list_all)
+	endfor
+	
+	// add traces	
+	for (n=0; n<num_points; n+=1)
+		AppendtoGraph/W=G_over_R_average/C=(M_colors[round(n*(100/num_points))][0],M_colors[round(n*(100/num_points))][1],M_colors[round(n*(100/num_points))][2]) $StringFromList(n,G_over_R_list) vs ti_me
+	endfor
+	
+endif
+
+Label/W=G_over_R_average left "Average G/R"
+Label/W=G_over_R_average bottom "time"
+SetAxis/W=G_over_R_average bottom 0,0.125
+SetAxis/W=G_over_R_average left -1,2
+Legend/F=0/C/W=G_over_R_average/N=g_leg
+
+end
+
+//Display G over R Smoothed Function//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Function Display_GoverR_smoothed()
+
+// locally defined global variables
+NVAR num_points
+NVAR smooth_factor
+
+// local variables
+string G_over_R_list, G_over_R_list_all, color_list
+variable n
+
+// waves
+wave ti_me
+
+// make a list of G_over_R waves
+G_over_R_list = Wavelist("G_over_R_*", ";","")
+
+// make a list of all G_over_R_waves including smoothed and normalized
+G_over_R_list_all = Wavelist("*G_over_R*", ";","")
+
+// generate a set of smoothed G_over_R waves
+for(n=0; n<ItemsInList(G_over_R_list, ";"); n+=1)
+	Duplicate/O $StringFromList(n,G_over_R_list), $("s_" + StringFromList(n,G_over_R_list))
+	smooth smooth_factor, $("s_" + StringFromList(n,G_over_R_list))
+endfor
+
+// create a 3xnum_points matrix of colors
+ColorTab2Wave Rainbow
+wave M_colors
+
+// check if graph is already made
+DoWindow G_over_R_Average
+
+// if the graph does not exist then create it
+if (V_flag ==0)
+	Display/W=(440, 50, 940, 450) as "G_over_R_average"
+	for (n=0; n<num_points; n+=1)
+		AppendtoGraph/C=(M_colors[round(n*(100/num_points))][0],M_colors[round(n*(100/num_points))][1],M_colors[round(n*(100/num_points))][2]) $("s_" + StringFromList(n,G_over_R_list)) vs ti_me
+	endfor
+	DoWindow/C G_over_R_Average
+
+// if the graph already exist then change it
+else
+	
+	// remove all trace on the graph	
+	for(n=0; n<ItemsInList(G_over_R_list_all, ";"); n+=1)
+		RemoveFromGraph/Z/W=G_over_R_average $StringFromList(n,G_over_R_list_all)
+	endfor
+	
+	// add traces	
+	for (n=0; n<num_points; n+=1)
+		AppendtoGraph/W=G_over_R_average/C=(M_colors[round(n*(100/num_points))][0],M_colors[round(n*(100/num_points))][1],M_colors[round(n*(100/num_points))][2]) $("s_" + StringFromList(n,G_over_R_list)) vs ti_me
+	endfor
+	
+endif
+
+Label/W=G_over_R_average left "Average G/R"
+Label/W=G_over_R_average bottom "time"
+SetAxis/W=G_over_R_average bottom 0,0.125
+SetAxis/W=G_over_R_average left -1,2
+Legend/F=0/C/W=G_over_R_average/N=g_leg
+end
+
+//Display G over R Normalized Function//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Function Display_GoverR_normalize()
+
+// locally defined global variables
+NVAR num_points
+NVAR smooth_factor
+
+// local variables
+string G_over_R_list, G_over_R_list_all, color_list
+variable n
+
+// waves
+wave ti_me
+
+// make a list of G_over_R waves
+G_over_R_list = Wavelist("G_over_R_*", ";","")
+
+// make a list of all G_over_R_waves including smoothed and normalized
+G_over_R_list_all = Wavelist("*G_over_R*", ";","")
+
+// generate a set of normalized G_over_R waves
+for(n=0; n<ItemsInList(G_over_R_list, ";"); n+=1)
+	Make/D/O/N=(data_points) temp
+	Duplicate/O $StringFromList(n,G_over_R_list), temp2
+	WaveStats/Q/R=[0,500] $StringFromList(n,G_over_R_list)
+	temp = temp2 - V_avg
+	Duplicate/O temp, $("n_" + StringFromList(n,G_over_R_list))
+	smooth smooth_factor, $("n_" + StringFromList(n,G_over_R_list))
+endfor
+
+// create a 3xnum_points matrix of colors
+ColorTab2Wave Rainbow
+wave M_colors
+
+// check if graph is already made
+DoWindow G_over_R_Average
+
+// if the graph does not exist then create it
+if (V_flag ==0)
+	Display/W=(440, 50, 940, 450) as "G_over_R_average"
+	for (n=0; n<num_points; n+=1)
+		AppendtoGraph/C=(M_colors[round(n*(100/num_points))][0],M_colors[round(n*(100/num_points))][1],M_colors[round(n*(100/num_points))][2]) $("n_" + StringFromList(n,G_over_R_list)) vs ti_me
+	endfor
+	DoWindow/C G_over_R_Average
+
+// if the graph already exist then change it
+else
+	
+	// remove all trace on the graph	
+	for(n=0; n<ItemsInList(G_over_R_list_all, ";"); n+=1)
+		RemoveFromGraph/Z/W=G_over_R_average $StringFromList(n,G_over_R_list_all)
+	endfor
+	
+	// add traces	
+	for (n=0; n<num_points; n+=1)
+		AppendtoGraph/W=G_over_R_average/C=(M_colors[round(n*(100/num_points))][0],M_colors[round(n*(100/num_points))][1],M_colors[round(n*(100/num_points))][2]) $("n_" + StringFromList(n,G_over_R_list)) vs ti_me
+	endfor
+	
+endif
+
+Label/W=G_over_R_average left "Average G/R"
+Label/W=G_over_R_average bottom "time"
+SetAxis/W=G_over_R_average bottom 0,0.125
+SetAxis/W=G_over_R_average left -0.1,0.5
+Legend/F=0/C/N=g_leg/W=G_over_R_average
+end
+
+//Display R vs T Function//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Function Display_RvsT()
+
+// local variables
+string R_vs_time_list, color_list
+variable n, n2, n3, y_max
+Make/O/N=(num_rep-num_remove) y_max_wave
+
+// make a list of R_vs_time waves
+R_vs_time_list = Wavelist("R_vs_time_*", ";","")
+
+// create a 3xnum_points matrix of colors
+ColorTab2Wave Rainbow
+wave M_colors
+
+// generate a set of smoothed R_vs_time waves
+for(n=0; n<ItemsInList(R_vs_time_list, ";"); n+=1)
+	Duplicate/O $StringFromList(n,R_vs_time_list), $("s_" + StringFromList(n,R_vs_time_list))
+	smooth 60, $("s_" + StringFromList(n,R_vs_time_list))
+endfor
+
+// find max R value
+for(n3=0; n3<ItemsInList(R_vs_time_list, ";"); n3+=1)
+	WaveStats/Q $("s_" +StringFromList(n3,R_vs_time_list))
+	y_max_wave[n3] = V_max
+endfor
+WaveStats/Q y_max_wave
+y_max = V_max + 50
+
+//check if graph is already made
+DoWindow R_vs_T
+
+// if the graph does not exist then create it
+if (V_flag ==0)
+	Display/W=(200, 50, 1000, 450) as "R_vs_T"
+	for (n=0; n<num_points; n+=1)
+		AppendtoGraph/C=(M_colors[round(n*(100/num_points))][0],M_colors[round(n*(100/num_points))][1],M_colors[round(n*(100/num_points))][2]) $("s_" + StringFromList(n,R_vs_time_list))
+	endfor
+	DoWindow/C R_vs_T
+
+	for (n2=1; n2<num_rep-num_remove+1; n2+=1)
+		SetDrawEnv/W=R_vs_T xcoord=bottom, ycoord=left
+		SetAxis/W=R_vs_T left 0,y_max
+		DrawLine/W=R_vs_T 2500*n2, 0, 2500*n2, y_max
+		SetDrawEnv/W=R_vs_T xcoord=bottom, ycoord=left
+		DrawText/W=R_vs_T 2500*n2-2400, y_max - 25, ("Rep " + num2str(n2))
+	endfor	
+endif
+
+Legend/F=0/C/W=R_vs_T/N=r_leg
+Label/W=R_vs_T left "Baseline fluorescence"
+Label/W=R_vs_T bottom "scan # "
+end
+
+
+//Hot Spot Function//---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Function hs()
+
+// delete window if it exists
+DoWindow/K Peak_GoverR_vs_distance
+
+// local variables
+string G_over_R_list
+variable n, n2, n3, n4, max_point, max_point_loc
+
+// make waves needed
+Make/O/N=(num_points) max_GoverR
+Make/O/N=(num_points) max_GoverR_isoc
+Make/O/N=(num_points) max_GoverR_loc
+Make/O/N=(num_points) ordered_max_GoverR
+
+// create semicolon-seperated-string of all G_over_R wave names
+G_over_R_list = Wavelist("G_over_R_*", ";","")
+
+
+for(n=0; n<ItemsInList(G_over_R_list, ";"); n+=1)
+
+// create normalized. smoothed waves
+	Make/D/O/N=(data_points) temp
+	Duplicate/O $StringFromList(n,G_over_R_list), temp2
+	WaveStats/Q/R=[0,500] $StringFromList(n,G_over_R_list)
+	temp = temp2 - V_avg
+	Duplicate/O temp, $("n_" + StringFromList(n,G_over_R_list))
+	smooth smooth_factor, $("n_" + StringFromList(n,G_over_R_list))
+	
+// create waves with value and location of max G over R
+	WaveStats/Q/R=(500,600) $("n_" + StringFromList(n,G_over_R_list))
+	max_GoverR[n] = V_max 
+	max_GoverR_loc[n] = V_maxloc
+	
+endfor
+	
+// find point which has max value among max G over R
+WaveStats/Q max_GoverR
+max_point = V_maxloc
+
+// find location of that point's max value
+max_point_loc = max_GoverR_loc[max_point]
+	
+for(n4=0; n4<ItemsInList(G_over_R_list, ";"); n4+=1)
+
+// find new max G over R for each point around the location of the max points peak
+	WaveStats/Q/R=(max_point_loc-peak_avg_dist,max_point_loc+peak_avg_dist) $("n_" + StringFromList(n4,G_over_R_list))
+	max_GoverR_isoc[n4] = V_avg
+endfor
+	
+// order peak G over R values according to position 
+for (n3 = 0; n3 < num_points; n3 += 1)
+	ordered_max_GoverR[n3] = max_GoverR_isoc[str2num(stringfromlist(n3, point_order))-1]
+	print(n3)
+	print(ordered_max_GoverR[n3])
+endfor 
+
+// display peak G over R vs. distance
+Display/W=(200, 50, 1000, 450)  ordered_max_GoverR as "Peak_GoverR_vs_distance"
+DoWindow/C Peak_GoverR_vs_distance
+Label/W=Peak_GoverR_vs_distance left "Peak G over R"
+Label/W=Peak_GoverR_vs_distance bottom "distance"
+SetAxis/W=Peak_GoverR_vs_distance left 0,0.15
+
+end
+
+//Kill Function//---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Function Kill()
+	// close all windows
+	DoWindow/K G_over_R_average
+	DoWindow/K R_vs_T
+	DoWindow/K max_GoverR_val
+	DoWindow/K Peak_GoverR_vs_distance
+	
+	// kill all waves
+	killwaves/a/z
+end
+

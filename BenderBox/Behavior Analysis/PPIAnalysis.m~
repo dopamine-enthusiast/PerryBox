@@ -1,0 +1,192 @@
+function PPIAnalysis
+
+%Define stimuli names
+backgroundStim = 'ppi background';
+startleStim = 'ppi backstartle';
+ppi1Stim = 'ppi1mod';
+ppi2Stim = 'ppi2';
+ppi3Stim = 'ppi3';
+ppi4Stim = 'ppi4';
+ppi5Stim = 'ppi5mod';
+
+%load the files
+files = dir('*.xls*');
+
+%extract data from the xls file
+try
+    [temp temp rawData] = xlsread(files(1).name);
+catch
+    error('The xls file either could not be found or parsed. Ensure that it is saved as an xls and not xlsx file');
+end
+
+%Format of data in rawData
+% 1 - date
+% 2 - time
+% 3 - session
+% 4 - subject
+% 5 - group
+% 6 - ID
+% 7 - trial
+% 8 - trial type
+% 9 - chan
+% 10 - seq
+% 11 - start
+% 12 - v max
+% 13 - T max
+% 14 - avg
+
+%Parse rawData with sortrows
+
+%Sort by subject
+rawData = sortrows(rawData,4);
+
+
+counter = 1;
+for i=1:length(rawData)
+    if i == 1
+        mouseID = rawData{i,4};
+        group = rawData{i,5};
+        date = rawData{i,1};
+        time = rawData{i,2};
+        session = rawData{i,3};
+        chamber = rawData{i,10};
+        
+        allStim = [];
+        baseline = [];
+        startle = [];
+        ppi1 = [];
+        ppi2 = [];
+        ppi3 = [];
+        ppi4 = [];
+        ppi5 = [];
+        
+        
+    elseif ~strcmp(mouseID,rawData{i,4})
+        %Save trial
+        trial(counter) = struct(...
+            'mouseID',mouseID,...
+            'group',group,...
+            'date',date,...
+            'time',time,...
+            'session',session,...
+            'chamber',chamber,...
+            'allStim',allStim,...
+            'baseline',baseline,...
+            'startle',startle,...
+            'ppi1',ppi1,...
+            'ppi2',ppi2,...
+            'ppi3',ppi3,...
+            'ppi4',ppi4,...
+            'ppi5',ppi5);
+        
+        counter = counter + 1;
+        
+        mouseID = rawData{i,4};
+        group = rawData{i,5};
+        date = rawData{i,1};
+        time = rawData{i,2};
+        session = rawData{i,3};
+        chamber = rawData{i,10};
+        
+        allStim = [];
+        baseline = [];
+        startle = [];
+        ppi1 = [];
+        ppi2 = [];
+        ppi3 = [];
+        ppi4 = [];
+        ppi5 = [];
+        
+    end
+    stimulus = strtrim(rawData{i,8});
+    if strcmp(backgroundStim,stimulus) baseline = [baseline rawData{i,14}];
+    elseif strcmp(startleStim,stimulus) startle = [startle rawData{i,14}];
+    elseif strcmp(ppi1Stim,stimulus) ppi1 = [ppi1 rawData{i,14}];
+    elseif strcmp(ppi2Stim,stimulus) ppi2 = [ppi2 rawData{i,14}];
+    elseif strcmp(ppi3Stim,stimulus) ppi3 = [ppi3 rawData{i,14}];
+    elseif strcmp(ppi4Stim,stimulus) ppi4 = [ppi4 rawData{i,14}];
+    elseif strcmp(ppi5Stim,stimulus) ppi5 = [ppi5 rawData{i,14}];
+    end
+    
+    
+end
+%save last trial
+trial(counter) = struct(...
+    'mouseID',mouseID,...
+    'group',group,...
+    'date',date,...
+    'time',time,...
+    'session',session,...
+    'chamber',chamber,...
+    'allStim',allStim,...
+    'baseline',baseline,...
+    'startle',startle,...
+    'ppi1',ppi1,...
+    'ppi2',ppi2,...
+    'ppi3',ppi3,...
+    'ppi4',ppi4,...
+    'ppi5',ppi5);
+
+% Determine amount of Prepulse Inhibition
+
+for i=1:length(trial)
+    trial(i).avgStartle = mean(trial(i).startle);
+    trial(i).initialStartle = mean(trial(i).startle(1));
+    trial(i).avgPreStartle = mean(trial(i).startle(2:6));
+    trial(i).avgPostStartle = mean(trial(i).startle(end-5:end));
+    avgBaseLine = mean(trial(i).baseline);
+    avgPPI1 = mean(trial(i).ppi1);
+    avgPPI2 = mean(trial(i).ppi2);
+    avgPPI3 = mean(trial(i).ppi3);
+    avgPPI4 = mean(trial(i).ppi4);
+    avgPPI5 = mean(trial(i).ppi5);
+    
+    trial(i).percentBaseline = ((avgBaseLine-trial(i).avgStartle)/trial(i).avgStartle)*100;
+    trial(i).percentPPI1 = abs(((avgPPI1-trial(i).avgStartle)/trial(i).avgStartle)*100);
+    trial(i).percentPPI2 = abs(((avgPPI2-trial(i).avgStartle)/trial(i).avgStartle)*100);
+    trial(i).percentPPI3 = abs(((avgPPI3-trial(i).avgStartle)/trial(i).avgStartle)*100);
+    trial(i).percentPPI4 = abs(((avgPPI4-trial(i).avgStartle)/trial(i).avgStartle)*100);
+    trial(i).percentPPI5 = abs(((avgPPI5-trial(i).avgStartle)/trial(i).avgStartle)*100);
+end
+
+
+%Make output xlsfile
+for i=1:length(trial)
+    xlsOutput{i,1} = trial(i).mouseID;
+    xlsOutput{i,2} = trial(i).group;
+    xlsOutput{i,3} = trial(i).date;
+    xlsOutput{i,4} = trial(i).time;
+    xlsOutput{i,5} = trial(i).session;
+    xlsOutput{i,6} = trial(i).chamber;
+    xlsOutput{i,7} = trial(i).percentBaseline;
+    xlsOutput{i,8} = trial(i).percentPPI1;
+    xlsOutput{i,9} = trial(i).percentPPI2;
+    xlsOutput{i,10} = trial(i).percentPPI3;
+    xlsOutput{i,11} = trial(i).percentPPI4;
+    xlsOutput{i,12} = trial(i).percentPPI5;
+end
+
+formatSpec = '%s,%s,%s,%2.3f,%s,%d,%2.3f,%2.3f,%2.3f,%2.3f,%2.3f,%2.3f\n';
+
+fid = fopen('test.csv','wt');
+if fid>0
+    for k=1:size(xlsOutput,1)
+        fprintf(fid,formatSpec,xlsOutput{k,:});
+        sprintf(formatSpec,xlsOutput{k,:})
+    end
+    fclose(fid);
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
