@@ -1,7 +1,17 @@
 function [slope,amp,Vm,Rin,sweepTimes] = STDPanalysisV2(cellName,preIdx,postIdx,EPSP_onset,prePost_offset,spikes_per_burst,burst_ISI)
 
 % exportPath = '/Users/perryspratt/Google Drive/Lab/Data/Ephys/Export'; %path to ibw files
-exportPath = '/Volumes/LAB (FAT32)/Data/Ephys/Export'; %path to ibw files
+
+exportPath = '/Users/perryspratt/Google Drive/Lab/Data/Ephys/Export'; 
+
+
+try
+    temp = IBWread([exportPath filesep cellName '_slope.ibw']);
+catch
+    exportPath = '/Volumes/LAB (FAT32)/Data/Ephys/Export'; %path to ibw files
+end
+
+
 
 preIdx = preIdx+1;
 postIdx = postIdx+1;
@@ -11,6 +21,11 @@ postIdx = postIdx+1;
 %% Get data out of the ibw files
 try
     temp = IBWread([exportPath filesep cellName '_slope.ibw']);
+    if length(temp.y) < postIdx(end)
+        postIdx = postIdx(1):length(temp.y);
+    end
+    
+    
     slope.pre = temp.y(preIdx)./mean(temp.y(preIdx));
     slope.post = temp.y(postIdx)./mean(temp.y(preIdx));
     slope.preRaw = temp.y(preIdx);
@@ -47,8 +62,13 @@ try
     temp = IBWread([exportPath filesep cellName '_rawsweeps.ibw']);
     [dim1 dim2] = size(temp.y);
     if dim2 == 1 % the exporter decided to export the Raw Vm as a single vector... Need to reshape
-        daq = 50000;%this may vary between cells
-        temp.y = reshape(temp.y(1:daq*postIdx(end)),daq,postIdx(end));
+        try
+            daq = 50000;%this may vary between cells
+            temp.y = reshape(temp.y(1:daq*postIdx(end)),daq,postIdx(end));
+        catch
+            daq = 20000;%this may vary between cells
+            temp.y = reshape(temp.y(1:daq*postIdx(end)),daq,postIdx(end));
+        end
     end
     
     
