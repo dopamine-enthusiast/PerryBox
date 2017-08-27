@@ -281,7 +281,7 @@ plot([1.95 2.05],[mean(summary(:,1))-nansem(summary(:,1)) mean(summary(:,1))-nan
 plot([2 2],[mean(summary(:,1))-nansem(summary(:,1)) mean(summary(:,1))+nansem(summary(:,1))],'k','linewidth',1.5)
 plot([0 3],[1 1],'k--')
 
-ylim([.8 2])
+ylim([.5 2])
 xlim([0 3]);
 set(gca,'fontsize',16,...
     'xtick',[],...
@@ -302,7 +302,7 @@ plot([1.95 2.05],[mean(summary(:,2))-nansem(summary(:,2)) mean(summary(:,2))-nan
 plot([2 2],[mean(summary(:,2))-nansem(summary(:,2)) mean(summary(:,2))+nansem(summary(:,2))],'k','linewidth',1.5)
 plot([0 3],[1 1],'k--')
 
-ylim([.8 2])
+ylim([.5 2])
 xlim([0 3]);
 set(gca,'fontsize',16,...
     'xtick',[],...
