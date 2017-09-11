@@ -129,9 +129,16 @@ classdef lineScan
             end
             
             try
-                if strcmp(obj.xmlData.PVScan.SystemConfiguration.Lasers.Laser{1, 1}.Attributes.name,'Imaging Laser')...
-                        && strcmp(obj.xmlData.PVScan.Sequence{1, 1}.Attributes.type,'Linescan')
+                if obj.xmlData.PVScan.Sequence{1, 1}.Frame.File{1, 2}.Attributes.channel == '3'
                     obj.imagingParams.rig = 'Thing1';
+                end
+            catch
+            end
+                
+                
+            try 
+                if obj.xmlData.PVScan.Sequence{1, 1}.Frame.File{1, 2}.Attributes.channel == '2' 
+                   obj.imagingParams.rig = 'Thing2'; 
                 end
             catch
                 
@@ -158,11 +165,22 @@ classdef lineScan
                 else
                     obj.imagingParams.laserPower = laser1;
                 end
+                
                 obj.imagingParams.numFrames = length(obj.xmlData.PVScan.Sequence);
                 obj.imagingParams.pixelsPerLine = str2double(obj.xmlData.PVScan.Sequence{1, 1}.Frame.PVStateShard.Key{1, 6}.Attributes.value);
                 obj.imagingParams.linesPerFrame = str2double(obj.xmlData.PVScan.Sequence{1, 1}.Frame.PVStateShard.Key{1, 7}.Attributes.value);
                 obj.imagingParams.scanlinePeriod = str2double(obj.xmlData.PVScan.Sequence{1, 1}.Frame.PVStateShard.Key{1, 12}.Attributes.value);
                 obj.imagingParams.micronPerPixelX = str2double(obj.xmlData.PVScan.Sequence{1, 1}.Frame.PVStateShard.Key{1, 21}.Attributes.value);
+            
+            elseif strcmp(obj.imagingParams.rig,'Thing2')
+                obj.imagingParams.greenPMTGain = str2double(obj.xmlData.PVScan.Sequence{1, 1}.Frame.PVStateShard.Key{1, 20}.Attributes.value);
+                obj.imagingParams.redPMTGain = str2double(obj.xmlData.PVScan.Sequence{1, 1}.Frame.PVStateShard.Key{1, 22}.Attributes.value);
+                obj.imagingParams.laserPower = str2double(obj.xmlData.PVScan.Sequence{1, 1}.Frame.PVStateShard.Key{1, 24}.Attributes.value);
+                obj.imagingParams.numFrames = length(obj.xmlData.PVScan.Sequence);
+                obj.imagingParams.pixelsPerLine = str2double(obj.xmlData.PVScan.Sequence{1, 1}.Frame.PVStateShard.Key{1, 4}.Attributes.value);
+                obj.imagingParams.linesPerFrame = str2double(obj.xmlData.PVScan.Sequence{1, 1}.Frame.PVStateShard.Key{1, 5}.Attributes.value);
+                obj.imagingParams.scanlinePeriod = str2double(obj.xmlData.PVScan.Sequence{1, 1}.Frame.PVStateShard.Key{1, 9}.Attributes.value);
+                obj.imagingParams.micronPerPixelX = str2double(obj.xmlData.PVScan.Sequence{1, 1}.Frame.PVStateShard.Key{1, 12}.Attributes.value);
             end
             
             obj.time = 0:obj.imagingParams.scanlinePeriod:obj.imagingParams.scanlinePeriod*(obj.imagingParams.linesPerFrame-1);
