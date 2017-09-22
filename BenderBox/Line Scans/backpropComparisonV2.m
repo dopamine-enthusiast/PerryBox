@@ -430,17 +430,6 @@ end
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 function [means, grandMean] = binData(data,distance,binCenters,bwidth)
 
 for i=1:length(data(:,1))                 
@@ -452,13 +441,6 @@ for i=1:length(data(:,1))
 end
 
 end
-
-
-
-
-
-
-
 
 
 function singles = averageSingleAmp(cell)
