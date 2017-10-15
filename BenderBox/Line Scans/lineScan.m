@@ -137,7 +137,8 @@ classdef lineScan
                 
                 
             try 
-                if obj.xmlData.PVScan.Sequence{1, 1}.Frame.File{1, 2}.Attributes.channel == '2' 
+                if obj.xmlData.PVScan.Sequence{1, 1}.Frame.File{1, 2}.Attributes.channel == '2' &&...
+                         strcmp(obj.xmlData.PVScan.Sequence{1, 1}.Frame.PVStateShard.Key{1, 5}.Attributes.key,'linesPerFrame')  
                    obj.imagingParams.rig = 'Thing2'; 
                 end
             catch
@@ -229,7 +230,10 @@ classdef lineScan
         
         function trace = normGoR(obj)
             for i=1:length(obj.green(:,1))
-                normTraces(i,:) = obj.normalize(obj.green(i,:)./obj.red(i,:),obj.expParams.baselineStart,obj.expParams.baselineEnd);
+%                 normTraces(i,:) = obj.normalize(obj.green(i,:)./obj.red(i,:),obj.expParams.baselineStart,obj.expParams.baselineEnd);
+                
+                normTraces(i,:) = obj.baseline_subtraction(obj.green(i,:),obj.expParams.baselineStart,obj.expParams.baselineEnd)./obj.red(i,:);
+
             end
             trace = nanmean(normTraces);
         end
@@ -242,17 +246,20 @@ classdef lineScan
             
         end
         
+        function trace = baseline_subtraction(obj,trace,baselineStartTime,baselineEndTime)
+            baseline  = getBaseline(obj,trace,baselineStartTime,baselineEndTime);
+            trace = trace - baseline;
+            
+        end
+        
         function baseline = getBaseline(obj,trace,baselineStartTime,baselineEndTime)
             baseline = nanmean(trace(1,...
                 floor(baselineStartTime/obj.imagingParams.scanlinePeriod):...
                 floor(baselineEndTime/obj.imagingParams.scanlinePeriod)));
         end
                                     
-        function [peak,tau] = decayFit(obj,trace,baseline)
-            if nargin < 2
-                baseline = 0;
-            end
-                                    
+        function [peak,tau] = decayFit(obj,trace)
+            
             decay = fit((1:length(trace))',...
                 trace',...
                 'exp1');
@@ -282,7 +289,7 @@ classdef lineScan
             singleOffset = singleOffset.loc(1);
             %Fit the decay of the first spike 
             [singlePeak, singleTau] =...
-                obj.decayFit(trace(spikeIndicies(1)+singleOffset:spikeIndicies(2)),trace(time2index(obj,spikeTimes(1)-.03):spikeIndicies(1)));
+                obj.decayFit(trace(spikeIndicies(1)+singleOffset:spikeIndicies(2))); %,trace(time2index(obj,spikeTimes(1)-.03):spikeIndicies(1)));
             
             %Find the peak and peak offset from the spike within 30ms of
             %spike onset
@@ -290,7 +297,7 @@ classdef lineScan
             trainOffset = trainOffset.loc(1);
             %Fit the decay of the last spike
             [lastPeak, lastTau] =...
-                obj.decayFit(trace(spikeIndicies(end)+trainOffset:length(trace)),trace(time2index(obj,spikeTimes(2)-.03):spikeIndicies(2)));
+                obj.decayFit(trace(spikeIndicies(end)+trainOffset:length(trace)));%,trace(time2index(obj,spikeTimes(2)-.03):spikeIndicies(2)));
             
             
             
@@ -456,7 +463,9 @@ classdef lineScan
                 
                 if norm == 1
                     for j=1:length(obj.green(:,1))
-                        trace = obj.normalize(obj.green(j,:)./obj.red(j,:),obj.expParams.baselineStart,obj.expParams.baselineEnd);
+%                         trace = obj.normalize(obj.green(j,:)./obj.red(j,:),obj.expParams.baselineStart,obj.expParams.baselineEnd
+                        trace = obj.baseline_subtraction(obj.green(j,:),obj.expParams.baselineStart,obj.expParams.baselineEnd)./obj.red(j,:);
+                        
                         ax = plot(obj.time,trace,'color',[.85,.85,1]);
                     end
                     plot(obj.time,smooth(obj.normGoR,smoothing),'k');

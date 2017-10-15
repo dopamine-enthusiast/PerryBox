@@ -564,7 +564,7 @@ end
         end
         
         for i=1:length(scans)                                 
-           
+     
             switch channel
                 case 1
                     trace = scans(i).normGoR; 
@@ -584,7 +584,7 @@ end
             peaks{1,i} = scans(i).name;
             
             [peaks{2,i}, tau(i)] =...
-                scans(i).decayFit(trace,startIndex,endIndex);
+                scans(i).decayFit(trace(startIndex:endIndex));
             
             fit = zeros(1,endIndex);
             
@@ -604,18 +604,18 @@ end
                 
                 
                 
-            if displayFigures == 1   
-                figure;
-                hold on;                       
-                plot(scans(i).time,smooth(trace,3),'k');
-                plot(scans(i).time,fit,'b');
-                legend({'Trace','Decay Fit'});
-                xlabel('Time (ms)'); 
-                title([scans(i).name ' ' channelName]);
-                set(gca,'YGrid', 'on','GridLineStyle', '-');                                        
-                legend({'Trace','fit'});
-                hold off; 
-            end
+%             if displayFigures == 1   
+%                 figure;
+%                 hold on;                       
+%                 plot(scans(i).time,smooth(trace,3),'k');
+%                 plot(scans(i).time,fit,'b');
+%                 legend({'Trace','Decay Fit'});
+%                 xlabel('Time (ms)'); 
+%                 title([scans(i).name ' ' channelName]);
+%                 set(gca,'YGrid', 'on','GridLineStyle', '-');                                        
+%                 legend({'Trace','fit'});
+%                 hold off; 
+%             end
             
             
             
@@ -663,7 +663,7 @@ end
         end
         [source,fileName] = fileparts(pwd);
         fileName = [fileName ' ' channelName ' Peaks'];
-        exportAnalysisDataDialog(scans,peaks,fileName);
+%         exportAnalysisDataDialog(scans,peaks,fileName);
     end
 
     function function_getLinearity(source,callbackdata)
@@ -1361,45 +1361,74 @@ end
         
         legend('off')
         
+        obj = scans(scan);
         switch channel 
             case 1
-                
                 if ~isempty(scans(scan).red) && ~isempty(scans(scan).green)
-                    obj = scans(scan);
-                    traces = scans(scan).green./ scans(scan).red;
+                    
                     channelName = 'G/R';
+                    
+                    if norm == 1
+                        gtraces = scans(scan).green;
+                        rtraces = scans(scan).red;
+                        
+                        for j=1:length(gtraces(:,1))
+                            traces(j,:) = baseline_subtraction(obj,gtraces(j,:),obj.expParams.baselineStart,obj.expParams.baselineEnd)./rtraces(j,:);
+                        end
+                        title([scans(scan).name ' sweep ' num2str(sweep) ' ' channelName ' Norm'],'FontSize',14);
+                        ylabel('dG/G','FontSize',14);
+                        ylim([str2double(get(edit_yMin,'String')) str2double(get(edit_yMax,'String'))]);
+                        set(panel_axisLimits,'visible','on');
+                    elseif norm == 0
+                        traces = scans(scan).green./ scans(scan).red;
+                        title([scans(scan).name ' sweep ' num2str(sweep) ' ' channelName ' Raw'],'FontSize',14);
+                        ylabel('Fluorescence','FontSize',14);
+                        ylim([0 inf])
+                    end
+                    
+                    
                 end
                 
             case 2
                 if ~isempty(scans(scan).green)
-                    obj = scans(scan);
                     traces = scans(scan).green;
                     channelName = 'Green';
+                    if norm == 1
+                        for j=1:length(traces(:,1))
+                            traces(j,:) = normalize(obj,traces(j,:),obj.expParams.baselineStart,obj.expParams.baselineEnd);
+                        end
+                        title([scans(scan).name ' sweep ' num2str(sweep) ' ' channelName ' Norm'],'FontSize',14);
+                        ylabel('dF/F','FontSize',14);
+                        ylim([str2double(get(edit_yMin,'String')) str2double(get(edit_yMax,'String'))]);
+                        set(panel_axisLimits,'visible','on');
+                    elseif norm == 0
+                        title([scans(scan).name ' sweep ' num2str(sweep) ' ' channelName ' Raw'],'FontSize',14);
+                        ylabel('Fluorescence','FontSize',14);
+                        ylim([0 inf])
+                    end
                 end
                 
             case 3
                 if ~isempty(scans(scan).red)
-                    obj = scans(scan);
                     traces = scans(scan).red;
                     channelName = 'Red';
+                    if norm == 1
+                        for j=1:length(traces(:,1))
+                            traces(j,:) = normalize(obj,traces(j,:),obj.expParams.baselineStart,obj.expParams.baselineEnd);
+                        end
+                        title([scans(scan).name ' sweep ' num2str(sweep) ' ' channelName ' Norm'],'FontSize',14);
+                        ylabel('dF/F','FontSize',14);
+                        ylim([str2double(get(edit_yMin,'String')) str2double(get(edit_yMax,'String'))]);
+                        set(panel_axisLimits,'visible','on');
+                    elseif norm == 0
+                        title([scans(scan).name ' sweep ' num2str(sweep) ' ' channelName ' Raw'],'FontSize',14);
+                        ylabel('Fluorescence','FontSize',14);
+                        ylim([0 inf])
+                    end
                 end
         end
         
         hold on;
-        if norm == 1
-            for j=1:length(traces(:,1))
-                traces(j,:) = normalize(obj,traces(j,:),obj.expParams.baselineStart,obj.expParams.baselineEnd);
-            end
-            title([scans(scan).name ' sweep ' num2str(sweep) ' ' channelName ' Norm'],'FontSize',14);
-            ylabel('dF/F','FontSize',14);
-            ylim([str2double(get(edit_yMin,'String')) str2double(get(edit_yMax,'String'))]);
-            set(panel_axisLimits,'visible','on');
-        elseif norm == 0
-            title([scans(scan).name ' sweep ' num2str(sweep) ' ' channelName ' Raw'],'FontSize',14);
-            ylabel('Fluorescence','FontSize',14);                           
-            ylim([0 inf])         
-            
-        end
         
         for j=1:length(traces(:,1))
             plot(obj.time,smooth(traces(j,:),smoothing),'color',[.8,.8,.8]);
