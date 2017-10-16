@@ -41,6 +41,10 @@ for i=1:length(scans)
         
     end
     
+    max_value = max(smooth(trace,10));
+    
+    
+    
     disp(delta)
     
     
@@ -60,19 +64,15 @@ for i=1:length(scans)
     distance(i) = pdist([0,0,0;x(i),y(i),z(i)]);
     
     % Add date to a cell table
-    outputTable{i,1} = [];
-    outputTable{i,2} = []; 
-    outputTable{i,3} = scans(i).date;
-    outputTable{i,4} = scans(i).name; %scan
-    outputTable{i,5} = x(i);
-    outputTable{i,6} = y(i);
-    outputTable{i,7} = z(i);
-    outputTable{i,8} = distance(i); %Eucl. Dist.
-    outputTable{i,9} = [];
-    outputTable{i,10} = [];
-    
+    outputTable{i,1} = scans(i).date;
+    outputTable{i,2} = scans(i).name; %scan
+    outputTable{i,3} = x(i);
+    outputTable{i,4} = y(i);
+    outputTable{i,5} = z(i);
+    outputTable{i,6} = distance(i); %Eucl. Dist.
+    outputTable{i,7} = max_value
     for j=1:length(delta)
-        outputTable{i,10+j} = delta(j);
+        outputTable{i,7+j} = delta(j);
     end
     
 end
