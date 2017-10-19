@@ -285,16 +285,21 @@ classdef lineScan
             
             %Find the peak and peak offset from the spike within 30ms of
             %spike onset
-            singleOffset = findpeaks(smooth(trace(spikeIndicies(1):time2index(obj,spikeTimes(1)+.03)),3));                       
-            singleOffset = singleOffset.loc(1);
+            [~, singleOffset] = findpeaks(smooth(trace(spikeIndicies(1):time2index(obj,spikeTimes(1)+.03)),3));                       
+            if ~isempty(singleOffset)
+                singleOffset = singleOffset(1);
+            else
+                singleOffset = length(trace(spikeIndicies(1):time2index(obj,spikeTimes(1)+.03)));
+            end
             %Fit the decay of the first spike 
             [singlePeak, singleTau] =...
                 obj.decayFit(trace(spikeIndicies(1)+singleOffset:spikeIndicies(2))); %,trace(time2index(obj,spikeTimes(1)-.03):spikeIndicies(1)));
             
             %Find the peak and peak offset from the spike within 30ms of
             %spike onset
-            trainOffset = findpeaks(smooth(trace(spikeIndicies(end):time2index(obj,spikeTimes(end)+.03)),3));  
-            trainOffset = trainOffset.loc(1);
+            [~, trainOffset] = findpeaks(smooth(trace(spikeIndicies(end):time2index(obj,spikeTimes(end)+.03)),3));  
+            trainOffset = trainOffset(1);
+
             %Fit the decay of the last spike
             [lastPeak, lastTau] =...
                 obj.decayFit(trace(spikeIndicies(end)+trainOffset:length(trace)));%,trace(time2index(obj,spikeTimes(2)-.03):spikeIndicies(2)));
