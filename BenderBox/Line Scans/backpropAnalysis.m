@@ -4,10 +4,10 @@ function outputTable = backpropAnalysis(channel, showPlots)
 %example spreadsheet: https://docs.google.com/spreadsheets/d/1elJ_9HW6ENi8D14uhngSU-gYchyhgQMe3btaM7QcHl8/edit?hl=en#gid=0
 
 if nargin == 0
-    showPlots = 0;
-    channel = 'g'
+    showPlots = 1;
+    channel = 'gor';
 elseif nargin == 1
-    showPlots = 0;
+    showPlots = 1;
 end
 
 
@@ -31,25 +31,54 @@ for i=1:length(scans)
     
     [traceLinearity(i), linearSumTrace, measuredPeakTrace, singlePeak(i), rms]= scans(i).linearity(trace, scans(i).expParams.spikeTimes);
     
-    trainPeak(i) = max(measuredPeakTrace);
-    expectedPeak(i) = max(linearSumTrace);
+    for j=1:length(scans(i).expParams.spikeTimes)
+        spikeIndex(j) = scans(i).time2index(scans(i).expParams.spikeTimes(j));
+    end
+    
+    
+    
+    train_baseline_start = spikeIndex(2)-scans(i).time2index(.05);
+    train_baseline_end = spikeIndex(2);
+    
+    train_baseline = mean(trace(train_baseline_start:train_baseline_end));
+    
+    
+    
+    
+    trainPeak(i) = max(measuredPeakTrace)-train_baseline;
+    expectedPeak(i) = max(linearSumTrace)-train_baseline;
     
     if showPlots == 1
         figure('units','normalized','outerposition',[0.2 0.2 .8 .8]);
         hold on;
-        plot(scans(i).time,linearSumTrace,'r');
-        plot(scans(i).time,smooth(trace,1),'k');
-        plot(scans(i).time,measuredPeakTrace,'b');
+        plot(scans(i).time(1:spikeIndex(2)),linearSumTrace(1:spikeIndex(2)),'r');
+        plot(scans(i).time(1:spikeIndex(2)),trace(1:spikeIndex(2)),'k');
+        plot(scans(i).time(1:spikeIndex(2)),measuredPeakTrace(1:spikeIndex(2)),'b');
         legend({'Expected','Trace','Measured Signal'});
         xlabel('Time (ms)');
-        xticks(sort([0 0.5 1 1.5 scans(i).expParams.spikeTimes]));
-        title([scans(i).name  ' ' channelName]);
+%         xticks(sort([0 0.5 1 1.5 scans(i).expParams.spikeTimes]));
+        title([scans(i).name  ' ' channelName ' single spike']);
         set(gca,'YGrid', 'on','GridLineStyle', '-');
         set(gca,'fontsize',16,...
             'XMinorTick','on',...
             'YMinorTick','on',...
             'TickDir','out');
-        xlim([0 floor(scans(1).time(end)*100)/100]);
+        hold off;
+        
+        figure('units','normalized','outerposition',[0.2 0.2 .8 .8]);
+        hold on;
+        plot(scans(i).time(spikeIndex(1):end),linearSumTrace(spikeIndex(1):end)-train_baseline,'r');
+        plot(scans(i).time(spikeIndex(1):end),trace(spikeIndex(1):end)-train_baseline,'k');
+        plot(scans(i).time(spikeIndex(1):end),measuredPeakTrace(spikeIndex(1):end)-train_baseline,'b');
+        legend({'Expected','Trace','Measured Signal'});
+        xlabel('Time (ms)');
+%         xticks(sort([0 0.5 1 1.5 scans(i).expParams.spikeTimes]));
+        title([scans(i).name  ' ' channelName ' burst']);
+        set(gca,'YGrid', 'on','GridLineStyle', '-');
+        set(gca,'fontsize',16,...
+            'XMinorTick','on',...
+            'YMinorTick','on',...
+            'TickDir','out');
         hold off;
     end
     
@@ -86,12 +115,12 @@ for i=1:length(scans)
     outputTable{i,8} = y(i);
     outputTable{i,9} = z(i);
     outputTable{i,10} = distance(i); %Eucl. Dist.
-    outputTable{i,13} = rms(1); %Single dect.
-    outputTable{i,14} = rms(2); %Train dect.
-    outputTable{i,15} = singlePeak(i); %Amp. (single)
-    outputTable{i,16} = trainPeak(i); %Amp. (train)
-    outputTable{i,17} = expectedPeak(i); % Amp. (Exp.)
-    outputTable{i,18} = traceLinearity(i); %Obs/exp.
+    outputTable{i,11} = rms(1); %Single dect.
+    outputTable{i,12} = rms(2); %Train dect.
+    outputTable{i,13} = singlePeak(i); %Amp. (single)
+    outputTable{i,14} = trainPeak(i); %Amp. (train)
+    outputTable{i,15} = expectedPeak(i); % Amp. (Exp.)
+    outputTable{i,16} = traceLinearity(i); %Obs/exp.
 end
 
 %Save cell table to clipboard
