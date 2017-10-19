@@ -5,7 +5,7 @@ function scans = loadLineScans
 % line scans
 
 dirs = {};
-dirs = uipickfiles('FilterSpec','LineScan*');
+dirs = uipickfiles();
 counter = 1;
 for i=1:length(dirs)
     
