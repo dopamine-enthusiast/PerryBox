@@ -25,14 +25,14 @@ for i=1:length(scans)
 
     
     for j=1:length(burst_times)
-    
+       smooth_trace = smooth(trace,5);
        burstStart = scans(i).time2index(burst_times(j));
        
        minRange = scans(i).time2index(burst_times(j) + 0.01);
        maxRange = scans(i).time2index(burst_times(j) + 0.05);
        
-       [min_value, min_index] = min(trace(burstStart:minRange));
-       [max_value, max_index] = max(trace(burstStart+min_index:maxRange));
+       [min_value, min_index] = min(smooth_trace(burstStart:minRange));
+       [max_value, max_index] = max(smooth_trace(burstStart+min_index:maxRange));
        
        scatter(burstStart+min_index,min_value,'k');
        scatter(burstStart+min_index+max_index,max_value,'r');
@@ -41,7 +41,7 @@ for i=1:length(scans)
         
     end
     
-    max_value = max(smooth(trace,10));
+    max_value = max(smooth(trace,5));
     
     
     
