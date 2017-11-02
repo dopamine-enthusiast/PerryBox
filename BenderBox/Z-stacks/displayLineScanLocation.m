@@ -59,7 +59,7 @@ for i=1:length(scanDirs)
 end
 
 [~, cellname] = fileparts(pwd);
-title(cellname);
+
 
 for i=1:length(scans)
     scan = scans(i); %ugly I know, but I 
@@ -74,11 +74,19 @@ for i=1:length(scans)
          end
     end
     
-    ls_img_filename = dir([valid_scanDirs{i} filesep 'References' filesep '*Reference.tif']);
+    if strcmp(scans(i).imagingParams.rig,'bluefish')
+        ls_img_filename = dir([valid_scanDirs{i} filesep 'References' filesep '*8bit-Reference.tif']);
+    else
+        ls_img_filename = dir([valid_scanDirs{i} filesep 'References' filesep '*Reference.tif']);
+    end
 
     ls_im = uint8(imread([valid_scanDirs{i} filesep 'References' filesep ls_img_filename(1).name]));
-
-    rotated_ls_im = imrotate(ls_im(:,:,1:3),angle);
+    
+    try
+        rotated_ls_im = imrotate(ls_im(:,:,1:3),angle);
+    catch
+        rotated_ls_im = imrotate(ls_im(:,:,1),angle);
+    end
      figure('units','normalized','outerposition',[0.2 0.2 .8 .8])
     subplot(1,2,1)
     imshow(rotated_ls_im);
@@ -87,7 +95,12 @@ for i=1:length(scans)
     subplot(1,2,2)
     imshow(cell_im,[]);
     hold on;
-    plot(soma_pos(1)-xPos,soma_pos(2)-yPos,'rs', 'MarkerSize', 30);
+    
+    if strcmp(scans(i).imagingParams.rig,'bluefish')
+        plot(soma_pos(1)+xPos,soma_pos(2)+yPos,'rs', 'MarkerSize', 30);
+    else
+        plot(soma_pos(1)-xPos,soma_pos(2)-yPos,'rs', 'MarkerSize', 30);
+    end
     title(cellname);
     
     saveas(gcf,[pwd filesep 'LineScan Locations' filesep scan.name '_location.png'])
@@ -113,7 +126,15 @@ for i=1:length(scans)
              yPos = (str2double(scans(i).xmlData.PVScan.Sequence{1, 1}.Frame.PVStateShard.Key{1, j}.Attributes.value)-somaCoords(2))/scale;               
          end
     end
-    plot(soma_pos(1)-xPos,soma_pos(2)-yPos,'s','color',cm(i,:), 'MarkerSize', 30);
+    
+    
+    if strcmp(scans(i).imagingParams.rig,'bluefish')
+        plot(soma_pos(1)+xPos,soma_pos(2)+yPos,'s','color',cm(i,:), 'MarkerSize', 30);
+    else
+       plot(soma_pos(1)-xPos,soma_pos(2)-yPos,'s','color',cm(i,:), 'MarkerSize', 30);
+    end
+    
+    
 end
 
 subplot(1,2,2)
@@ -129,7 +150,7 @@ set(gca, 'Box', 'off', 'TickDir', 'out', 'TickLength', [.02 .02], ...
     'XMinorTick', 'on', 'YMinorTick', 'on', 'YGrid', 'on', 'GridLineStyle', '-',...
     'XColor', 'k', 'YColor', 'k',  ...
     'LineWidth', 1,'FontName','arial','FontSize',12);
-
+title(cellname);
 legend(legendnames,'FontSize',10,'location','best');
 saveas(gcf,[pwd filesep cellname ' summary.png']);
 saveas(gcf,[pwd filesep cellname ' summary.fig']);
