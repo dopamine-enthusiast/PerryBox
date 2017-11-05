@@ -23,27 +23,32 @@ panel_imageOrPlot = uibuttongroup(...
     'position',[.825 .55 .15 .05],...
     'SelectionChangeFcn',@function_selectPlotOrImage);
 
-panel_skip = uipanel(...
-    'units','normalized',...
-    'position',[.825 .5 .15 0.05]);
-
-panel_imagingParams = uipanel(...
-    'units','normalized',...
-    'position',[.825 .35 .15 0.15]);
-
-panel_normalize = uibuttongroup(...
-    'units','normalized',...
-    'position',[.825 .15 .15 .2],...
-    'SelectionChangeFcn',@function_selectNormalization);
-
-panel_smoothingAndThresh = uipanel(...
-    'units','normalized',...
-    'position',[.825 .05 .15 .1]);
-
 panel_changeScans = uipanel(...
     'visible','off',...
     'units','normalized',...
     'position',[.3 .9 .3 .05]);
+
+panel_gsat = uipanel(...
+    'units','normalized',...
+    'position',[.825 .5 .15 0.05]);
+
+
+panel_skip = uipanel(...
+    'units','normalized',...
+    'position',[.825 .45 .15 0.05]);
+
+panel_imagingParams = uipanel(...
+    'units','normalized',...
+    'position',[.825 .3 .15 0.15]);
+
+panel_normalize = uibuttongroup(...
+    'units','normalized',...
+    'position',[.825 .1 .15 .2],...
+    'SelectionChangeFcn',@function_selectNormalization);
+
+panel_smoothing = uipanel(...
+    'units','normalized',...
+    'position',[.825 .05 .15 .05]);
 
 panel_changeSweeps = uipanel(...
     'visible','off',...
@@ -68,11 +73,12 @@ edit_yMax = uicontrol('Style', 'edit',...
     'Callback', @function_changeYlim,...
     'parent',panel_axisLimits);
 
-text_yLimit = uicontrol('Style', 'Text',...
-    'String', 'Y Limits',...
+text_yLimit = uicontrol('Style', 'pushbutton',...
+    'String', 'Auto',...
     'Units','normalized',...
     'FontUnits','normalized',...
-    'Position', [0 .33 1 .33],...   
+    'Position', [0 .33 1 .33],...
+    'Callback', @function_autoYlim,...
     'parent',panel_axisLimits);
 
 
@@ -177,6 +183,23 @@ radio_sweep = uicontrol('Style', 'radiobutton',...,...
     'Position', [0.1 0 1 .33],...
     'parent',panel_selectContent);
 
+%% gsat panel
+text_gsat = uicontrol('Style', 'text', ...
+    'FontUnits','normalized',...
+    'Units','normalized',...
+    'Position', [0 0 0.3 1],...
+    'string','G_sat',...
+    'parent',panel_gsat);
+
+edit_gsat = uicontrol('Style', 'edit', ...
+    'FontUnits','normalized',...
+    'Units','normalized',...
+    'Position', [.3 0 .7 1],...
+    'string','',...
+    'Callback', @function_setGsat,...
+    'parent',panel_gsat);
+
+
 %% skip panel
 text_skip = uicontrol('Style', 'text', ...
     'FontUnits','normalized',...
@@ -242,32 +265,17 @@ edit_baselineEnd = uicontrol('Style', 'edit', ...
 text_smoothing = uicontrol('Style', 'text', ...
     'FontUnits','normalized',...
     'Units','normalized',...
-    'Position', [.1 0.5 .4 .5],...
+    'Position', [.1 0 .4 1],...
     'string','Smooth',...
-    'parent',panel_smoothingAndThresh);
+    'parent',panel_smoothing);
 
 edit_smoothing = uicontrol('Style', 'edit', ...
     'FontUnits','normalized',...
     'Units','normalized',...
-    'Position', [.5 0.5 .5 .5],...
+    'Position', [.5 0 .5 1],...
     'string',3,...
     'Callback', @function_setSmoothing,...
-    'parent',panel_smoothingAndThresh);
-
-text_thresh = uicontrol('Style', 'text', ...
-    'FontUnits','normalized',...
-    'Units','normalized',...
-    'Position', [.1 0 .5 .5],...
-    'string','Threshold',...
-    'parent',panel_smoothingAndThresh);
-
-edit_thresh = uicontrol('Style', 'edit', ...
-    'FontUnits','normalized',...
-    'Units','normalized',...
-    'Position', [.6 0 .3 .5],...
-    'string',0.5,...
-    'Callback', @function_setThresh,...
-    'parent',panel_smoothingAndThresh);
+    'parent',panel_smoothing);
 
 %% Imaging Params Panel
 
@@ -439,20 +447,56 @@ groupScanOrSweep = 1;
 plotOrImage = 1;
 norm = 1;
 displayFigures = 1;
-
+set(lineScanUI,'currentaxes',plot_ax)
+cla;
+plot([0 1],[0 0],'k');
+ylim([str2double(get(edit_yMin,'String')) str2double(get(edit_yMax,'String'))]);
+set(gca, 'Box', 'off', 'TickDir', 'out', 'TickLength', [.02 .02], ...
+            'XMinorTick', 'on', 'YMinorTick', 'on', 'YGrid', 'on', 'GridLineStyle', '-',...
+            'XColor', 'k', 'YColor', 'k',  ...
+            'LineWidth', 1,'FontName','arial','FontSize',12);
 if nargin == 1
     update;
 end
 
 %% UI Control Functions
+
+    function function_setGsat(source,callbackdata)
+       gsat = eval(['[' get(source,'string') ']']);
+       
+       scans(scan).expParams.gsat =  gsat;
+       if groupScanOrSweep == 1
+           for i=1:length(scans)
+               scans(i).expParams.gsat =  gsat;
+           end
+       end    
+              
+       update;
+    end
+
     function function_changeYlim(source,callbackdata)
+        ylim([str2double(get(edit_yMin,'String')) str2double(get(edit_yMax,'String'))]);
         update;
-    end          
+    end  
+
+    function function_autoYlim(source,callbackdata)
+        ylim([-inf inf]);
+        update;
+    end  
 
     function function_setSpikeTimes(source,callbackdata)
         
         spikeTimes = eval(['[' get(source,'string') ']']);
         scans(scan).expParams.spikeTimes = spikeTimes;
+
+        if groupScanOrSweep == 1
+            for i=1:length(scans)
+                scans(i).expParams.spikeTimes =  spikeTimes;
+            end
+        end
+        
+        
+        
         update;
         
     end
@@ -887,7 +931,7 @@ end
         set(panel_skip,'visible','off')
         set(panel_imagingParams,'visible','off')
         set(panel_normalize,'visible','off')
-        set(panel_smoothingAndThresh,'visible','off')
+        set(panel_smoothing,'visible','off')
         set(panel_changeScans,'visible','off')
         set(panel_changeSweeps,'visible','off')
         set(panel_analysis,'visible','off')
@@ -912,7 +956,7 @@ end
         set(panel_skip,'visible','on')
         set(panel_imagingParams,'visible','on')
         set(panel_normalize,'visible','on')
-        set(panel_smoothingAndThresh,'visible','on')
+        set(panel_smoothing,'visible','on')
         set(panel_changeScans,'visible','on')
         set(panel_changeSweeps,'visible','on')
         set(panel_analysis,'visible','on')
@@ -958,12 +1002,6 @@ end
     function function_setSkips(source,eventdata)
         skips = eval(['[' get(source,'string') ']']);
         scans(scan) = scans(scan).skipSweeps(skips);
-        update;
-    end
-
-    function function_setThresh(source,eventdata)
-        thresh = str2num(get(source,'string'));
-        scans(scan) = scans(scan).changeThreshold(thresh);
         update;
     end
 
@@ -1160,17 +1198,31 @@ end
         set(edit_redThresh,'visible','off');
         set(edit_greenThresh,'visible','off');        
         set(panel_skip,'visible','off');
-        set(text_thresh,'visible','off');
-        set(edit_thresh,'visible','off');
+        set(panel_gsat,'visible','off');
         
         % Update all dynamic text
         set(edit_goToScan,'string',num2str(scan));
         set(edit_goToSweep,'string',num2str(sweep));
         
         set(edit_skip,'string',mat2str(scans(scan).expParams.skip));
-        set(edit_setSpikeTimes,'string',mat2str(scans(scan).expParams.spikeTimes));
         
-        set(edit_thresh,'string',num2str(scans(scan).expParams.thresh));
+        set(edit_gsat,'string',num2str(scans(scan).expParams.gsat));
+        set(edit_setSpikeTimes,'string',mat2str(scans(scan).expParams.spikeTimes));
+        if groupScanOrSweep == 1      
+            temp = scans(1).expParams.gsat;
+            for i =2:length(scans)
+                if scans(i).expParams.gsat ~= temp
+                    set(edit_gsat,'string','Multiple Values');
+                end
+            end     
+            temp = scans(1).expParams.spikeTimes;
+            for i =2:length(scans)
+                if ~isequal(scans(i).expParams.spikeTimes,temp)
+                    set(edit_setSpikeTimes,'string','Multiple Values');
+                end
+            end
+        end
+        
         
         set(edit_baselineStart,'string',num2str(scans(scan).expParams.baselineStart));
         set(edit_baselineEnd,'string',num2str(scans(scan).expParams.baselineEnd));        
@@ -1187,7 +1239,7 @@ end
                 
                 displayPlot;
                 
-            case 2;
+            case 2
                 displayImages;
                 set(edit_redThresh,'visible','on');
                 set(edit_greenThresh,'visible','on');
@@ -1217,8 +1269,9 @@ end
         switch groupScanOrSweep
             case 1
                 groupPlot;
-                set(edit_setSpikeTimes,'visible','off')
-                set(text_setSpikeTimes,'visible','off')
+                set(edit_setSpikeTimes,'visible','on')
+                set(text_setSpikeTimes,'visible','on')
+                 set(panel_gsat,'visible','on');
             case 2
                 scanPlot;
                 set(panel_changeScans,'visible','on');
@@ -1226,10 +1279,9 @@ end
                 set(text_greenPMT,'visible','on');
                 set(text_redPMT,'visible','on');
                 set(text_laser,'visible','on');
-                set(text_thresh,'visible','on');
-                set(edit_thresh,'visible','on');
                 set(edit_setSpikeTimes,'visible','on')
                 set(text_setSpikeTimes,'visible','on')
+                set(panel_gsat,'visible','on');
             case 3
                 sweepPlot;
                 set(panel_changeSweeps,'visible','on');
@@ -1237,10 +1289,9 @@ end
                 set(text_greenPMT,'visible','on');
                 set(text_redPMT,'visible','on');
                 set(text_laser,'visible','on');
-                set(text_thresh,'visible','on');
-                set(edit_thresh,'visible','on');
                 set(edit_setSpikeTimes,'visible','on')
                 set(text_setSpikeTimes,'visible','on')
+                set(panel_gsat,'visible','on');
         end
         
     end
@@ -1265,7 +1316,6 @@ end
             elseif channel == 1 && norm == 1 %GoR normalized
                 plot(scans(i).time,smooth(scans(i).normGoR,smoothing),'color',c(i,:));
                 title([cellName ' G/R Norm'],'fontsize',14);
-                ylim([str2double(get(edit_yMin,'String')) str2double(get(edit_yMax,'String'))]);
                 set(panel_axisLimits,'visible','on');
             elseif channel == 2 && norm == 0 %Green unnormalized
                 plot(scans(i).time,smooth(scans(i).meanGreen,smoothing),'color',c(i,:));
@@ -1273,7 +1323,6 @@ end
             elseif channel == 2 && norm == 1 %Green normalized
                 plot(scans(i).time,smooth(scans(i).normGreen,smoothing),'color',c(i,:));
                 title([cellName ' Green Norm'],'fontsize',14);
-                ylim([str2double(get(edit_yMin,'String')) str2double(get(edit_yMax,'String'))]);
                 set(panel_axisLimits,'visible','on');
             elseif channel == 3 && norm == 0 %Red unnormalized
                 plot(scans(i).time,smooth(scans(i).meanRed,smoothing),'color',c(i,:));
@@ -1281,7 +1330,6 @@ end
             elseif channel == 3 && norm == 1 %Red normalized
                 plot(scans(i).time,smooth(scans(i).normRed,smoothing),'color',c(i,:));
                 title([cellName ' Red Norm'],'fontsize',14);
-                ylim([str2double(get(edit_yMin,'String')) str2double(get(edit_yMax,'String'))]);
                 set(panel_axisLimits,'visible','on');
             end
             
@@ -1296,12 +1344,6 @@ end
                 'LineWidth', 1,'FontName','arial','FontSize',12);
             
             legend(legendnames,'FontSize',10,'location','best');
-            
-            if norm == 0
-                
-               ylim([0 inf])
-                
-            end
             
             hold off;                                    
         
@@ -1322,19 +1364,16 @@ end
             scans(scan).plotGoverR(0,smoothing);            
         elseif channel == 1 && norm == 1 %GoR normalized
             scans(scan).plotGoverR(1,smoothing);       
-            ylim([str2double(get(edit_yMin,'String')) str2double(get(edit_yMax,'String'))]);
                 set(panel_axisLimits,'visible','on');
         elseif channel == 2 && norm == 0 %Green unnormalized
             scans(scan).plotGreen(0,smoothing);            
         elseif channel == 2 && norm == 1 %Green normalized
             scans(scan).plotGreen(1,smoothing);       
-            ylim([str2double(get(edit_yMin,'String')) str2double(get(edit_yMax,'String'))]);
                 set(panel_axisLimits,'visible','on');
         elseif channel == 3 && norm == 0 %Red unnormalized
             scans(scan).plotRed(0,smoothing);            
         elseif channel == 3 && norm == 1 %Red normalized
             scans(scan).plotRed(1,smoothing);      
-            ylim([str2double(get(edit_yMin,'String')) str2double(get(edit_yMax,'String'))]);
                 set(panel_axisLimits,'visible','on');
         end
         
@@ -1344,11 +1383,7 @@ end
             'XMinorTick', 'on', 'YMinorTick', 'on', 'YGrid', 'on', 'GridLineStyle', '-',...
             'XColor', 'k', 'YColor', 'k',  ...
             'LineWidth', 1,'FontName','arial','FontSize',12);
-        if norm == 0
-            
-            ylim([0 inf])
-            
-        end
+ 
         hold off                        
         
     end
@@ -1374,16 +1409,17 @@ end
                         
                         for j=1:length(gtraces(:,1))
                             traces(j,:) = baseline_subtraction(obj,gtraces(j,:),obj.expParams.baselineStart,obj.expParams.baselineEnd)./rtraces(j,:);
+                            if ~isnan(scans(scan).expParams.gsat)
+                                traces(j,:) = traces(j,:)./scans(scan).expParams.gsat;
+                            end                                
                         end
                         title([scans(scan).name ' sweep ' num2str(sweep) ' ' channelName ' Norm'],'FontSize',14);
                         ylabel('dG/G','FontSize',14);
-                        ylim([str2double(get(edit_yMin,'String')) str2double(get(edit_yMax,'String'))]);
                         set(panel_axisLimits,'visible','on');
                     elseif norm == 0
                         traces = scans(scan).green./ scans(scan).red;
                         title([scans(scan).name ' sweep ' num2str(sweep) ' ' channelName ' Raw'],'FontSize',14);
                         ylabel('Fluorescence','FontSize',14);
-                        ylim([0 inf])
                     end
                     
                     
@@ -1399,12 +1435,10 @@ end
                         end
                         title([scans(scan).name ' sweep ' num2str(sweep) ' ' channelName ' Norm'],'FontSize',14);
                         ylabel('dF/F','FontSize',14);
-                        ylim([str2double(get(edit_yMin,'String')) str2double(get(edit_yMax,'String'))]);
                         set(panel_axisLimits,'visible','on');
                     elseif norm == 0
                         title([scans(scan).name ' sweep ' num2str(sweep) ' ' channelName ' Raw'],'FontSize',14);
                         ylabel('Fluorescence','FontSize',14);
-                        ylim([0 inf])
                     end
                 end
                 
@@ -1418,12 +1452,10 @@ end
                         end
                         title([scans(scan).name ' sweep ' num2str(sweep) ' ' channelName ' Norm'],'FontSize',14);
                         ylabel('dF/F','FontSize',14);
-                        ylim([str2double(get(edit_yMin,'String')) str2double(get(edit_yMax,'String'))]);
                         set(panel_axisLimits,'visible','on');
                     elseif norm == 0
                         title([scans(scan).name ' sweep ' num2str(sweep) ' ' channelName ' Raw'],'FontSize',14);
                         ylabel('Fluorescence','FontSize',14);
-                        ylim([0 inf])
                     end
                 end
         end
@@ -1436,6 +1468,11 @@ end
         
         plot(obj.time,smooth(traces(sweep,:),smoothing),'color',[0 0 0]);
         hold off;
+        
+        set(gca, 'Box', 'off', 'TickDir', 'out', 'TickLength', [.02 .02], ...
+            'XMinorTick', 'on', 'YMinorTick', 'on', 'YGrid', 'on', 'GridLineStyle', '-',...
+            'XColor', 'k', 'YColor', 'k',  ...
+            'LineWidth', 1,'FontName','arial','FontSize',12);
     end
     
     function displayImages
@@ -1456,27 +1493,6 @@ end
     function averageImage
         obj = scans(scan);  
         
-%         if ~isempty(obj.raw.green) %if there is a green channel
-%             for i=1:length(obj.raw.green(:,1,1))%Go through each sweep
-%                 %Determine regions of image below threshold
-%                 if ~isempty(obj.raw.red)%If there is a red channel create mask from red
-%                     mask = sum(squeeze(obj.raw.red(i,:,:))) > max(sum(obj.raw.red(i,:,:)))*obj.expParams.thresh;
-%                     mask = repmat(mask,length(obj.raw.red(i,:,1)),1);
-%                 else%Otherwise use green channel to create the mask
-%                     mask = sum(squeeze(obj.raw.green(i,:,:))) > max(sum(obj.raw.green(i,:,:)))*obj.expParams.thresh;
-%                     mask = repmat(mask,length(obj.raw.green(i,:,1)),1);
-%                 end
-%                 %multiply sweep by mask, sum across the sweep,
-%                 %normalize to number of pixels used in the sum
-%                 green(i,:,:) = squeeze(obj.raw.green(i,:,:)).*mask;
-%                 %do the same thing to the red sweep
-%                 if ~isempty(obj.raw.red)
-%                     red(i,:,:) = squeeze(obj.raw.red(i,:,:)).*mask;
-%                 end
-%             end
-%         end
-
-
         
         if ~isfield(scans(scan).expParams,'mask')
             imgDim = size(squeeze(mean(scans(scan).raw.green)));
@@ -1582,27 +1598,6 @@ end
         end
         hold off;
         
-        
-%         
-%         if ~isempty(obj.raw.green) %if there is a green channel
-%             for i=1:length(obj.raw.green(:,1,1))%Go through each sweep
-%                 %Determine regions of image below threshold
-%                 if ~isempty(obj.raw.red)%If there is a red channel create mask from red
-%                     mask = sum(squeeze(obj.raw.red(i,:,:))) > max(sum(obj.raw.red(i,:,:)))*obj.expParams.thresh;
-%                     mask = repmat(mask,length(obj.raw.red(i,:,1)),1);
-%                 else%Otherwise use green channel to create the mask
-%                     mask = sum(squeeze(obj.raw.green(i,:,:))) > max(sum(obj.raw.green(i,:,:)))*obj.expParams.thresh;
-%                     mask = repmat(mask,length(obj.raw.green(i,:,1)),1);
-%                 end
-%                 %multiply sweep by mask, sum across the sweep,
-%                 %normalize to number of pixels used in the sum
-%                 green(i,:,:) = squeeze(obj.raw.green(i,:,:)).*mask;
-%                 %do the same thing to the red sweep
-%                 if ~isempty(obj.raw.red)
-%                     red(i,:,:) = squeeze(obj.raw.red(i,:,:)).*mask;
-%                 end
-%             end
-%         end
         
     end
 
