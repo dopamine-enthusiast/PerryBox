@@ -73,6 +73,10 @@ classdef lineScan
                 obj.expParams.maskCoord = [0 1 imgDim(1)+1 imgDim(2)-1];
             end
             
+            if ~isfield(obj.expParams,'gsat')
+                obj.expParams.gsat = NaN;
+            end
+            
             
             if ~isfield(obj.expParams,'skip')
                 obj.expParams.skip = [];
@@ -231,8 +235,11 @@ classdef lineScan
         function trace = normGoR(obj)
             for i=1:length(obj.green(:,1))
 %                 normTraces(i,:) = obj.normalize(obj.green(i,:)./obj.red(i,:),obj.expParams.baselineStart,obj.expParams.baselineEnd);
-                
-                normTraces(i,:) = obj.baseline_subtraction(obj.green(i,:),obj.expParams.baselineStart,obj.expParams.baselineEnd)./obj.red(i,:);
+                if isnan(obj.expParams.gsat)
+                    normTraces(i,:) = obj.baseline_subtraction(obj.green(i,:),obj.expParams.baselineStart,obj.expParams.baselineEnd)./obj.red(i,:);
+                else
+                    normTraces(i,:) = (obj.baseline_subtraction(obj.green(i,:),obj.expParams.baselineStart,obj.expParams.baselineEnd)./obj.red(i,:))./obj.expParams.gsat;
+                end
 
             end
             trace = nanmean(normTraces);
@@ -469,10 +476,14 @@ classdef lineScan
                 if norm == 1
                     for j=1:length(obj.green(:,1))
 %                         trace = obj.normalize(obj.green(j,:)./obj.red(j,:),obj.expParams.baselineStart,obj.expParams.baselineEnd
-                        trace = obj.baseline_subtraction(obj.green(j,:),obj.expParams.baselineStart,obj.expParams.baselineEnd)./obj.red(j,:);
-                        
+                        trace = obj.baseline_subtraction(obj.green(j,:),obj.expParams.baselineStart,obj.expParams.baselineEnd)./obj.red(j,:); 
+                        if ~isnan(obj.expParams.gsat)
+                            trace = trace./obj.expParams.gsat;
+                        end
                         ax = plot(obj.time,trace,'color',[.85,.85,1]);
                     end
+                                       
+                    
                     plot(obj.time,smooth(obj.normGoR,smoothing),'k');
                     title([obj.name ' Norm G/R'],'fontsize',14)
                 else
