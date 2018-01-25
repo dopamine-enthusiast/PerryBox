@@ -17,7 +17,7 @@ for i=1:length(scans)
     trace = scans(i).normGoR;
     channelName = 'Green/Red';
 
-    burst_times = [.2, .25, .3, .35, .4];
+    burst_times = [.2, .3, .4, .5, .6];
     
     figure;
     hold on;
