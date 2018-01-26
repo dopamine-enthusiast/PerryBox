@@ -1251,8 +1251,8 @@ end
                 set(text_greenPMT,'visible','on');
                 set(text_redPMT,'visible','on');
                 set(text_laser,'visible','on');
-                set(text_thresh,'visible','on');
-                set(edit_thresh,'visible','on');
+%                 set(text_thresh,'visible','on');
+%                 set(edit_thresh,'visible','on');
                 set(edit_setSpikeTimes,'visible','on')
                 set(text_setSpikeTimes,'visible','on')
         end
