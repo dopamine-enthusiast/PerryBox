@@ -8,6 +8,7 @@ classdef lineScan
         date = [];
         xmlData = [];
         imagingParams = [];
+        scan_image = [];
         
         % Parameters that vary between experiments
         expParams = [];
@@ -33,10 +34,9 @@ classdef lineScan
             obj = importXmlData(obj,path);            
             obj = importImagingData(obj,path);
             
-            %Set standard values than can be edited if neccisary
-            obj.expParams.baselineStart = 0.1;
-            obj.expParams.baselineEnd = 0.2;
-            obj.expParams.thresh = 0;
+            %Set standard values than can be edited if needed
+            obj.expParams.baselineStart = [];
+            obj.expParams.baselineEnd = [];            
             obj.expParams.skip = [];
             
             obj = updateLineScan(obj);
@@ -506,6 +506,34 @@ classdef lineScan
             
         end
         
+        % Summary
+        
+        function summary(obj)
+           figure('units','normalized','outerposition',[0.15 0.2 .7 .6]);
+           subplot(1,2,1)
+           display_image(obj)
+           title(obj.name);
+           subplot(1,2,2)
+            plotGoverR(obj)        
+            
+        end
+        
+        
+        function display_image(obj)
+            for j=1:length(obj.xmlData.PVScan.Sequence{1, 1}.Frame.PVStateShard.Key)
+                if strcmp(obj.xmlData.PVScan.Sequence{1, 1}.Frame.PVStateShard.Key{1, j}.Attributes.key,'rotation')
+                    angle  = str2double(obj.xmlData.PVScan.Sequence{1, 1}.Frame.PVStateShard.Key{1, j}.Attributes.value);
+                end
+            end
+                                   
+            try
+                rotated_ls_im = imrotate(obj.scan_image(:,:,1:3),angle);
+            catch
+                rotated_ls_im = imrotate(obj.scan_image(:,:,1),angle);
+            end            
+            imshow(rotated_ls_im);    
+        end
+        
     end
     
     methods(Access = private)
@@ -552,7 +580,13 @@ classdef lineScan
                 obj.raw.green = [];
             end
             
-            
+            if strcmp(obj.imagingParams.rig,'bluefish')
+                ls_img_filename = dir([path filesep 'References' filesep '*8bit-Reference.tif']);
+            else
+                ls_img_filename = dir([path filesep 'References' filesep '*Reference.tif']);
+            end
+
+            obj.scan_image = uint8(imread([path filesep 'References' filesep ls_img_filename(1).name]));
             
             
         end
