@@ -473,6 +473,8 @@ end
            for i=1:length(scans)
                scans(i).expParams.gsat =  gsat;
            end
+       else
+           scans(scan).expParams.gsat =  gsat;
        end    
               
        update;
@@ -916,12 +918,12 @@ end
         end
         
         switch groupScanOrSweep
-            case 1
+            case 1 %group
                 [temp currentDir] = fileparts(pwd);
                 FileName = [currentDir ' ' channelName ' ' modeType];
-            case 2
+            case 2 %scan
                 FileName = [scans(scan).name ' ' channelName ' ' modeType];
-            case 3
+            case 3 %sweep             
                 FileName = [scans(scan).name ' ' num2str(sweep) ' ' channelName ' ' modeType];
         end
         [FileName,PathName,FilterIndex] = uiputfile({'*.png';'*.fig';'*.eps'},'Save As',FileName);
