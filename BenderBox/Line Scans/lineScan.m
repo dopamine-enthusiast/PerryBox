@@ -273,13 +273,15 @@ classdef lineScan
             
             confInts = confint(decay);
             
-            if confInts(1,1) < 0 || confInts(2,1) < 0 || decay.b > 0
-                peak = rms(trace);
-                tau = 0;                        
-            else              
-                peak = decay.a;
+%             if confInts(1,1) < 0 || confInts(2,1) < 0 || decay.b > 0
+%                 peak = rms(trace);
+%                 tau = 0;                        
+%             else              
+%                 peak = decay.a;
+%                 tau = decay.b; 
+%             end    
+            peak = decay.a;
                 tau = decay.b; 
-            end                                                
         end
         
         function [L, linearSum, measuredPeak, singlePeak, rms] = linearity(obj,trace,spikeTimes)
