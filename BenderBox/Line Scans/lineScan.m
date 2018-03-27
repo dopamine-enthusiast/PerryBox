@@ -35,8 +35,8 @@ classdef lineScan
             obj = importImagingData(obj,path);
             
             %Set standard values than can be edited if needed
-            obj.expParams.baselineStart = [];
-            obj.expParams.baselineEnd = [];            
+            obj.expParams.baselineStart = .1;
+            obj.expParams.baselineEnd = .2;            
             obj.expParams.skip = [];
             
             obj = updateLineScan(obj);
