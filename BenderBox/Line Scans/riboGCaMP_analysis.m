@@ -7,6 +7,10 @@ function riboGCaMP_analysis()
 
 scans = loadLineScans;
 
+num_spikes = [1 3 5 10 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5];
+isi = .01;
+stim_start = .2;
+
 %Go through each line scans pull out data for analysis
 for i=1:length(scans)
     
@@ -20,21 +24,49 @@ for i=1:length(scans)
     
     figure;
     hold on;
-    plot(trace,'color',[0.8 0.8 0.8]);
-    plot(smooth(trace,5),'k');
-    title(['Max dF/F: ' num2str(max(smooth(trace,5)))]);
+    plot(scans(i).time,trace,'color',[0.8 0.8 0.8]);
+    smoothed_trace = smooth(trace,9);
+    plot(scans(i).time, smoothed_trace,'k');
+    [peak_amp peak_idx] = max(smoothed_trace);
+    scatter(scans(i).index2time(peak_idx), smoothed_trace(peak_idx));
+    title(['Max dF/F: ' num2str(peak_amp)]);
+    
+    stim_end_idx = time2index(scans(i), stim_start + num_spikes(i)*isi);
+    
+    rise_idx = find(smoothed_trace - smoothed_trace(stim_end_idx) >= (peak_amp - smoothed_trace(stim_end_idx)) *.632,1);
+    
+    plot([stim_start + num_spikes(i)*isi stim_start + num_spikes(i)*isi],[0 peak_amp],'k');
+    disp(smoothed_trace(rise_idx));
+    rise_time = index2time(scans(i),rise_idx)- (stim_start + num_spikes(i)*isi);
+    scatter(scans(i).index2time(rise_idx), smoothed_trace(rise_idx));
+    
+    fall_idx = find(smoothed_trace(peak_idx:end) <= peak_amp*0.368,1)+peak_idx-1;
+    if isempty(fall_idx)
+       fall_time = NaN;
+    else
+        fall_time = index2time(scans(i),fall_idx);
+        disp(smoothed_trace(fall_idx));
+        scatter(scans(i).index2time(fall_idx), smoothed_trace(fall_idx));
+    end
+            
+    
+    
+    
     
     outputTable{i,1} = cellname;
     outputTable{i,2} = []; %genotype
-    outputTable{i,3} = scans(i).date;
-    outputTable{i,4} = scans(i).name; %scan name
-    outputTable{i,5} = scan_x;
-    outputTable{i,6} = scan_y;
-    outputTable{i,7} = scan_z;
-    outputTable{i,8} = scan_distance;
-    outputTable{i,9} = 0; %apical vs Basal
-    outputTable{i,10} = []; %nums spikes
-    outputTable{i,11} = max(smooth(trace,5));
+    outputTable{i,3} = scans(i).date; %Experiment Date
+    outputTable{i,4} = datestr(datetime); %Analysis Date
+    outputTable{i,5} = scans(i).name; %scan name
+    outputTable{i,6} = scan_x;
+    outputTable{i,7} = scan_y;
+    outputTable{i,8} = scan_z;
+    outputTable{i,9} = scan_distance;
+    outputTable{i,10} = 0; %apical vs Basal
+    outputTable{i,11} = num_spikes(i); %nums spikes
+    outputTable{i,12} = max(smoothed_trace);
+    outputTable{i,13} = rise_time;
+    outputTable{i,14} = fall_time;
     
 
 %Save cell table to clipboard
