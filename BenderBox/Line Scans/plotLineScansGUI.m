@@ -95,7 +95,7 @@ push_setPath = uicontrol('Style', 'pushbutton',...
     'String', 'Set Path',...
     'Units','normalized',...
     'FontUnits','normalized',...
-    'Position', [0 .75 1 .25],...
+    'Position', [0 .75 .5 .25],...
     'Callback', @function_setPath,...
     'parent',panel_load);
 
@@ -103,8 +103,24 @@ push_load = uicontrol('Style', 'pushbutton',...
     'String', 'Load',...
     'Units','normalized',...
     'FontUnits','normalized',...
-    'Position', [0 .50 1 .25],...
+    'Position', [.5 .75 .5 .25],...
     'Callback', @function_loadLinescans,...
+    'parent',panel_load);
+
+push_previous_cell = uicontrol('Style', 'pushbutton',...
+    'String', 'Previous',...
+    'Units','normalized',...
+    'FontUnits','normalized',...
+    'Position', [0 .50 .5 .25],...
+    'Callback', @function_loadPreviousCell,...
+    'parent',panel_load);
+
+push_next_cell = uicontrol('Style', 'pushbutton',...
+    'String', 'Next',...
+    'Units','normalized',...
+    'FontUnits','normalized',...
+    'Position', [.5 .50 .5 .25],...
+    'Callback', @function_loadNextCell,...
     'parent',panel_load);
 
 push_load = uicontrol('Style', 'pushbutton',...
@@ -411,12 +427,12 @@ button_getBaseline = uicontrol('Style', 'pushbutton',...
     'Callback', @fuction_getBaseline,...
     'parent',panel_analysis);
 
-button_getMax = uicontrol('Style', 'pushbutton',...
-    'String', 'Max',...
+button_bAP_analysis = uicontrol('Style', 'pushbutton',...
+    'String', 'bAP Analysis',...
     'Units','normalized',...
     'FontUnits','normalized',...
     'Position', [.4 0 .1 1],...
-    'Callback', @function_getMax,...
+    'Callback', @function_get_stdp_analysis,...
     'parent',panel_analysis);
 
 text_setSpikeTimes = uicontrol('Style','text',...
@@ -464,6 +480,61 @@ end
 
 
 %% UI Control Functions
+
+    function function_loadPreviousCell(source,callbackdata)
+        [cell_path, current_cell] = fileparts(pwd);
+        
+        folders = dir(cell_path);
+        folders = folders([folders.isdir] == 1);
+        [temp, idx] = sort([folders.datenum]);
+        folders = folders(idx);
+        
+        previous_cell = folders(find(strcmp({folders.name},current_cell))-1).name;
+        cd([cell_path filesep previous_cell]);
+        
+        scan_files = dir('LineScan*');
+        scan_files = scan_files([scan_files.isdir] == 0);
+        
+        scans = loadLineScans({scan_files.name});
+        
+        for i=1:length(scans)
+            scans_datenum(i) = datenum(scans(i).date);         
+        end
+        [temp idx] = sort(scans_datenum);
+        scans = scans(idx);
+        update;
+                
+    end
+
+    function function_loadNextCell(source,callbackdata)
+                [cell_path, current_cell] = fileparts(pwd);
+        
+        folders = dir(cell_path);
+        folders = folders([folders.isdir] == 1);
+        [temp, idx] = sort([folders.datenum]);
+        folders = folders(idx);
+        
+        next_cell = folders(find(strcmp({folders.name},current_cell))+1).name;
+        cd([cell_path filesep next_cell]);
+        
+        scan_files = dir('LineScan*');
+        scan_files = scan_files([scan_files.isdir] == 0);
+        
+        scans = loadLineScans({scan_files.name});
+        
+        for i=1:length(scans)
+            scans_datenum(i) = datenum(scans(i).date);         
+        end
+        [temp idx] = sort(scans_datenum);
+        scans = scans(idx);
+        update;
+    end
+
+
+
+
+
+
 
     function function_setGsat(source,callbackdata)
        gsat = eval(['[' get(source,'string') ']']);
@@ -547,63 +618,8 @@ end
 
     end
 
-    function function_getMax(source, callbackdata)
-        for i=1:length(scans)                                 
-           
-            switch channel
-                case 1
-                    trace = scans(i).normGoR; 
-                    channelName = 'G/R';
-                case 2
-                    trace = scans(i).normGreen;
-                    channelName = 'Green';
-                case 3
-                    trace = scans(i).normRed;
-                    channelName = 'Red';
-            end
-            
-            
-            
-            
-            traceMax{1,i} = scans(i).name;
-            
-            traceMax{2,i}= max(smooth(trace,9));
-                                 
-            switch channel
-                case 1
-                    scans(i).expParams.GoRMax = traceMax{2,i};
-                case 2
-                    scans(i).expParams.greenMax = traceMax{2,i};
-                case 3
-                    scans(i).expParams.redMax = traceMax{2,i};
-            end
-            time(i) = datenum(scans(i).date);            
-        
-        end
-        
-        %Sort by time
-        [sorted order] = sort(time);
-        scans = scans(order);
-        time = time(order);
-        
-        temp = traceMax;
-        for i=1:length(traceMax)
-            traceMax{1,i} = temp{1,order(i)};
-            traceMax{2,i} = temp{2,order(i)};
-            normTraceMax(i) = traceMax{2,i}/traceMax{2,1};
-        end
-                
-        time = time - time(1);
-        
-       [traceMax{2,:}]
-        assignin('base', 'traceMax', traceMax);    
-        try
-            mat2clip(traceMax');
-        catch 
-        end
-                
-        
-        normTraceMax
+    function function_get_stdp_analysis(source, callbackdata)
+       STDPBackpropAnalysis(scans);
                        
     end
 

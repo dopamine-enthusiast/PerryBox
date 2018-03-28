@@ -40,6 +40,7 @@ classdef lineScan
             obj.expParams.skip = [];
             
             obj = updateLineScan(obj);
+            obj = autoSetMaskCoords(obj);
             
         end
         
@@ -590,6 +591,20 @@ classdef lineScan
 
             obj.scan_image = uint8(imread([path filesep 'References' filesep ls_img_filename(1).name]));
             
+            
+            
+            
+            
+        end
+        
+        function obj = autoSetMaskCoords(obj)
+            try            
+                limits = find(mean(squeeze(mean(obj.raw.red)))> median(mean(squeeze(mean(obj.raw.red)))));                       
+                obj.expParams.maskCoord(2) = limits(1)  ;        
+                obj.expParams.maskCoord(4) = limits(end)-limits(1);
+                obj = updateLineScan(obj);
+            catch
+            end
             
         end
     end

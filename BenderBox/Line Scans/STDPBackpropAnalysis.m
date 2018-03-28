@@ -1,20 +1,42 @@
-function outputTable = STDPBackpropAnalysis(showPlots)
+function outputTable = STDPBackpropAnalysis(scans)
 %This function pulls out relevant data from selected linescans and saves
 %data to the clipboard for adding to spreadsheet
 %example spreadsheet: https://docs.google.com/spreadsheets/d/1elJ_9HW6ENi8D14uhngSU-gYchyhgQMe3btaM7QcHl8/edit?hl=en#gid=0
 
+show_plots = 1;
 
+%Select Scans to include if they are not passed to the function
+if nargin == 0
+    scans = loadLineScans;
+end
 
-%Select Scans to include
-scans = loadLineScans;
+%sort scans
+for i=1:length(scans)
+    scans_datenum(i) = datenum(scans(i).date);
+end
+[temp idx] = sort(scans_datenum);
+scans = scans(idx);
 
-[filename, pathname] = uigetfile({'*.mat'},'Select line scan of nexus');
-load([pathname filename]);
-nexus_scan = obj;
+%Find the nexus scan
+for i=1:length(scans)
+    %First use regexp to identify it
+    if ~isempty(regexp(scans(i).name,regexptranslate('wildcard','*nexus*')))
+        nexus_scan = scans(i)
+        break;
+    end        
+    
+    %if no scan is named select it manually 
+    if i == length(scans)
+        [filename, pathname] = uigetfile({'*.mat'},'Select line scan of nexus');
+        load([pathname filename]);
+        nexus_scan = obj;        
+    end
+end
 [nexus_x, nexus_y, nexus_z, nexus_distance] = getLineScanLocation(nexus_scan);
 
 burst_times = [.2, .3, .4, .5, .6]; %trains of APs
-stim_length = 0.02;
+stim_length = 0.022;
+
 
 
 
@@ -29,25 +51,37 @@ for i=1:length(scans)
     
     burst_start_idx = scans(i).time2index(burst_times);
     burst_end_idx = scans(i).time2index(burst_times+stim_length);
+    isi_idx = burst_start_idx(2)-burst_start_idx(1);
+    time_step = scans(i).time(2)-scans(i).time(1);
+    
     
     baseline = 0;
-    
-    figure;
-    hold on;
-    title(scans(i).name);
-    xlabel('Scan Number');
-    ylabel('dG/R');
-    ylim([-.01 .25]);
-    plot(trace,'color',[0.8 0.8 0.8]);
+    if show_plots
+        figure;
+        hold on;
+        title(scans(i).name);
+        xlabel('Scan Number');
+        ylabel('dG/R');
+        ylim([-.01 .25]);
+        plot(scans(i).time, trace,'color',[0.8 0.8 0.8]);
+    end
     
     for j=1:length(burst_times)-1
         decay_phase = trace(burst_end_idx(j):burst_start_idx(j+1)); %get the decay phase between bursts
         [peak,tau] = decayFit(scans(i),decay_phase); %fit to an exponetial decay
-        delta(j) = peak-baseline;
+        
         x = 1:length(decay_phase);
         y = peak*exp(tau*x);
+        
+        if show_plots
+            plot(scans(i).time(x+burst_end_idx(j)),y,'k');     
+        end 
+        
+        delta(j) = peak-baseline;
+        if delta(j) < 0
+            delta(j) = 0;
+        end
         baseline = y(end);
-        plot(x+burst_end_idx(j),y,'k');        
     end
     decay_phase = trace(burst_end_idx(end):burst_end_idx(end)+burst_end_idx(end)-burst_start_idx(end-1)); %get the decay phase between bursts
     [peak,tau] = decayFit(scans(i),decay_phase); %fit to an exponetial decay
@@ -55,7 +89,17 @@ for i=1:length(scans)
     x = 1:length(decay_phase);
     y = peak*exp(tau*x);
     baseline = y(end);
-    plot(x+burst_end_idx(end),y,'k');
+    
+    if show_plots
+        plot(scans(i).time(x+burst_end_idx(end)),y,'k');        
+        if 7~=exist('Decay fits','dir')
+           mkdir('Decay fits');
+        end        
+        saveas(gcf,['Decay fits' filesep scans(i).name '_decay fits.png']);
+        close;
+    end 
+    
+    auc = trapz(scans(i).time(burst_start_idx(1):burst_start_idx(end)+isi_idx),trace(burst_start_idx(1):burst_start_idx(end)+isi_idx));
     
     
     [scan_x, scan_y, scan_z, scan_distance] = getLineScanLocation(scans(i));
@@ -88,6 +132,8 @@ for i=1:length(scans)
         outputTable{i,20} = sqrt((nexus_x-scan_x)^2 + (nexus_y-scan_y)^2 + (nexus_z-scan_z)^2);
         outputTable{i,21} = outputTable{i,20}+nexus_distance;
     end
+    outputTable{i,22} = auc;
+    outputTable{i,23} = datestr(datetime);
    
     %old method of finding peaks
 %     figure;
