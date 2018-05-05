@@ -530,12 +530,6 @@ end
         update;
     end
 
-
-
-
-
-
-
     function function_setGsat(source,callbackdata)
        gsat = eval(['[' get(source,'string') ']']);
        

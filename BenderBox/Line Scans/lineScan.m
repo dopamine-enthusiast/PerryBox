@@ -370,10 +370,10 @@ classdef lineScan
         function h = showImage(obj)
             if ~isempty(obj.red)
                 subplot(2,1,1)
-                imshow(uint16(squeeze(nanmean(obj.red))'),[]);
+                imshow(uint16(squeeze(nanmean(obj.red))),[]);
                 title({['Red Channel '];[obj.name]},'fontsize',16);
                 subplot(2,1,2)
-                imshow(uint16(squeeze(nanmean(obj.green))'),[]);
+                imshow(uint16(squeeze(nanmean(obj.green))),[]);
                 title({['Green Channel '];[obj.name]},'fontsize',16);
             else
                 imshow(uint16(squeeze(nanmean(obj.green))),[]);
