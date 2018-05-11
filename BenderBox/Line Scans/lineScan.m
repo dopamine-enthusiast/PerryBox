@@ -480,6 +480,8 @@ classdef lineScan
                     for j=1:length(obj.green(:,1))
 %                         trace = obj.normalize(obj.green(j,:)./obj.red(j,:),obj.expParams.baselineStart,obj.expParams.baselineEnd
                         trace = obj.baseline_subtraction(obj.green(j,:),obj.expParams.baselineStart,obj.expParams.baselineEnd)./obj.red(j,:); 
+                        trace = smooth(trace, smoothing);
+                        
                         if ~isnan(obj.expParams.gsat)
                             trace = trace./obj.expParams.gsat;
                         end
