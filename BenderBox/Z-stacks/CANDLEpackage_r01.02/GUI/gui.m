@@ -232,7 +232,7 @@ end
 function initialize_gui(fig_handle, handles)
 
 handles.value.beta = 0.1;
-handles.value.patchradius = 2;
+handles.value.patchradius = 1;
 handles.value.searchradius = 3;
 handles.value.suffixstring ='_denoised';
 handles.value.background = 1.0;

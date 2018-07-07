@@ -35,7 +35,7 @@ end
 [nexus_x, nexus_y, nexus_z, nexus_distance] = getLineScanLocation(nexus_scan);
 
 burst_times = [.2, .3, .4, .5, .6]; %trains of APs
-stim_length = 0.022;
+stim_length = 0.023;
 
 
 
