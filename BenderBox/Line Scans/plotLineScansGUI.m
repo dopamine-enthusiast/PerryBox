@@ -486,7 +486,7 @@ end
         
         folders = dir(cell_path);
         folders = folders([folders.isdir] == 1);
-        [temp, idx] = sort([folders.datenum]);
+        [temp, idx] = f([folders.datenum]);
         folders = folders(idx);
         
         previous_cell = folders(find(strcmp({folders.name},current_cell))-1).name;
@@ -814,7 +814,7 @@ end
         
         
         %load spike times
-        [FileName,PathName] = uigetfile('/Users/perryspratt/Google Drive/Programs and Scripts/MATLAB/PerryBox/BenderBox/Line Scans/Spike times/*.txt');
+        [FileName,PathName] = uigetfile('/Users/perryspratt/Code/PerryBox/BenderBox/Line Scans/Spike times/*.txt');
         spikeTimes = csvread([PathName filesep FileName]);
         
         
