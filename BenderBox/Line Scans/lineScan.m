@@ -268,21 +268,16 @@ classdef lineScan
                                     
         function [peak,tau] = decayFit(obj,trace)
             
-            decay = fit((1:length(trace))',...
-                trace',...
+       
+%             [~, offset] = max(trace);
+%             offset = 1;
+            decay = fit((1:length(trace(1:end)))',...
+                trace(1:end)',...
                 'exp1');
             
-            confInts = confint(decay);
             
-%             if confInts(1,1) < 0 || confInts(2,1) < 0 || decay.b > 0
-%                 peak = rms(trace);
-%                 tau = 0;                        
-%             else              
-%                 peak = decay.a;
-%                 tau = decay.b; 
-%             end    
             peak = decay.a;
-                tau = decay.b; 
+            tau = decay.b; 
         end
         
         function [L, linearSum, measuredPeak, singlePeak, rms] = linearity(obj,trace,spikeTimes)
