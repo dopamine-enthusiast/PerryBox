@@ -894,6 +894,17 @@ end
         sweep = 1;
         scans = loadLineScans;
         
+        if ~isempty(scans(1).green) && ~isempty(scans(1).red) %both
+            channel = 1;
+            set(radio_GoR,'Value',1);
+        elseif isempty(scans(1).red) %green only
+            channel = 2;
+            set(radio_green,'Value',1);
+        else isempty(scans(1).green) %red only
+            channel = 3;
+            set(radio_red,'Value',1);
+        end
+          
         update;
         
     end
@@ -983,11 +994,27 @@ end
     function function_selectChannel(source,eventdata)
         switch get(eventdata.NewValue,'String')
             case 'G/R'
-                channel = 1;
+                if ~isempty(scans(scan).green) && ~isempty(scans(scan).red) %both                    
+                    channel = 1;
+                elseif isempty(scans(scan).green)
+                    warndlg('Cannot Display G/R. There is no green channel');
+                elseif isempty(scans(scan).red)
+                    warndlg('Cannot Display G/R. There is no red channel');
+                end
+                                    
             case 'Green'
-                channel = 2;
+                 if isempty(scans(scan).green)
+                     warndlg('There is no green channel');
+                 else
+                    channel = 2;
+                 end
+                 
             case 'Red'
-                channel = 3;
+                if isempty(scans(scan).red)
+                     warndlg('There is no red channel');
+                 else
+                    channel = 3;
+                end
         end
         update;
     end
@@ -1068,9 +1095,7 @@ end
             scan = 1;
         else
             scan = input;
-        end
-        img = 1;
-        numScans = length(scans(scan).green(:,1,1));
+        end        
         update;
     end
 
@@ -1081,8 +1106,6 @@ end
         else
             scan = length(scans);
         end
-        img = 1;
-        numScans = length(scans(scan).green(:,1,1));
         update;
     end
 
@@ -1093,8 +1116,7 @@ end
         else
             scan = 1;
         end
-        img = 1;
-        numScans = length(scans(scan).green(:,1,1));
+
         update;
     end
 
@@ -1107,8 +1129,6 @@ end
         else
             sweep = input;
         end
-        img = 1;
-        numSweeps = length(scans(scan).green(:,1,1));
         update;
     end
 
@@ -1118,8 +1138,6 @@ end
         else
             sweep = length(scans(scan).green(:,1));
         end
-        img = 1;
-        numSweeps = length(scans(scan).green(:,1));
         update;
     end
 
@@ -1349,10 +1367,14 @@ end
                 set(panel_axisLimits,'visible','on');
             end
             
+            time_axis(i) = floor(scans(i).time(end)*100)/100;
+            
             legendnames{i} = scans(i).name;
         end
             xlabel('Time (s)','FontSize',14);
-            xlim([0 floor(scans(1).time(end)*100)/100]);
+            
+            
+            xlim([0 max(time_axis)]);
             
             set(gca, 'Box', 'off', 'TickDir', 'out', 'TickLength', [.02 .02], ...
                 'XMinorTick', 'on', 'YMinorTick', 'on', 'YGrid', 'on', 'GridLineStyle', '-',...
@@ -1549,14 +1571,17 @@ end
             setPositionConstraintFcn(greenMask,fcn);
             scans(scan) = updateLineScan(scans(scan));
         end
-        
+             
         if ~isempty(scans(scan).green) && ~isempty(scans(scan).red)
             %Modify the position of the mask in both axes simultaneously
             greenMask.addNewPositionCallback(@(pos)updateMaskGreen(pos,redMask,greenMask));
             redMask.addNewPositionCallback(@(pos)updateMaskRed(pos,greenMask,redMask));
+        elseif ~isempty(scans(scan).green)
+            greenMask.addNewPositionCallback(@(pos)updateMask(pos,greenMask));
+        elseif ~isempty(scans(scan).red)
+            redMask.addNewPositionCallback(@(pos)updateMask(pos,redMask));
         end
-        
-  
+
     end
     
     function updateMaskGreen(pos,redMask,greenMask)
@@ -1571,6 +1596,12 @@ end
         scans(scan).expParams.mask = createMask(greenMask)';
         scans(scan).expParams.maskCoord = getPosition(greenMask);
         scans(scan) = updateLineScan(scans(scan));
+    end
+
+    function updateMask(pos,mask)
+        scans(scan).expParams.mask = createMask(mask)';
+        scans(scan).expParams.maskCoord = getPosition(mask);
+        scans(scan) = updateLineScan(scans(scan));        
     end
         
     function singleImage
