@@ -1,5 +1,13 @@
 function boxplots_from_cell_array(cell_array,y_label)
 
+% colors
+% WT
+% [0,0,0]
+% [0.5,0.5,0.5]
+% 
+% Het
+% [0,0.6824,0.9373]
+% [0.6392,0.8784,0.9686]
 
 for i=1:length(cell_array(1,:))
     

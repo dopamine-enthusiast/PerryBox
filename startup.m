@@ -1,5 +1,5 @@
 function startup
 
-cd('/Users/perryspratt/Google Drive/Lab/Data');
+cd('~/data');
 
 % set(0,'DefaultAxesFontSize',14);
