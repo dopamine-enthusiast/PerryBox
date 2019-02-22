@@ -129,32 +129,31 @@ classdef lineScan
         end
         
         function obj = updateLineScanXML(obj)
-            
-            if ~isempty(obj.imagingParams.complete_params) %is it a new import
-                
-                if strcmp(obj.imagingParams.complete_params.praire_version,'5.0.32.100')
-                    if strcmp(obj.imagingParams.complete_params.ch1,'red') ||...
-                            strcmp(obj.imagingParams.complete_params.ch2,'green')
-                        obj.imagingParams.rig = 'bluefish';
+            try 
+                if ~isempty(obj.imagingParams.complete_params) %is it a new import
+
+                    if strcmp(obj.imagingParams.complete_params.praire_version,'5.0.32.100')
+                        if strcmp(obj.imagingParams.complete_params.ch1,'red') ||...
+                                strcmp(obj.imagingParams.complete_params.ch2,'green')
+                            obj.imagingParams.rig = 'bluefish';
+                        else
+                            obj.imagingParams.rig = 'Thing1';
+                        end
                     else
-                        obj.imagingParams.rig = 'Thing1';
+                        obj.imagingParams.rig = 'Thing2';
                     end
-                else
-                    obj.imagingParams.rig = 'Thing2';
+
+
+                    obj.imagingParams.greenPMTGain = [];
+                    obj.imagingParams.redPMTGain = [];
+                    obj.imagingParams.laserPower = [];
+                    obj.imagingParams.numFrames = str2double(obj.imagingParams.complete_params.numFrames);
+                    obj.imagingParams.pixelsPerLine = str2double(obj.imagingParams.complete_params.pixelsPerLine);
+                    obj.imagingParams.linesPerFrame = str2double(obj.imagingParams.complete_params.linesPerFrame);
+                    obj.imagingParams.scanlinePeriod = str2double(obj.imagingParams.complete_params.scanlinePeriod);
+                    obj.imagingParams.micronPerPixelX = str2double(obj.imagingParams.complete_params.micronsPerPixel_XAxis);
                 end
-                
-                
-                obj.imagingParams.greenPMTGain = [];
-                obj.imagingParams.redPMTGain = [];
-                obj.imagingParams.laserPower = [];
-                obj.imagingParams.numFrames = str2double(obj.imagingParams.complete_params.numFrames);
-                obj.imagingParams.pixelsPerLine = str2double(obj.imagingParams.complete_params.pixelsPerLine);
-                obj.imagingParams.linesPerFrame = str2double(obj.imagingParams.complete_params.linesPerFrame);
-                obj.imagingParams.scanlinePeriod = str2double(obj.imagingParams.complete_params.scanlinePeriod);
-                obj.imagingParams.micronPerPixelX = str2double(obj.imagingParams.complete_params.micronsPerPixel_XAxis);
-                
-            else %old import
-                
+            catch                           
                 try
                     if obj.xmlData.PVScan.Sequence{1, 1}.Frame.File{1, 2}.Attributes.channel == '3'
                         obj.imagingParams.rig = 'Thing1';

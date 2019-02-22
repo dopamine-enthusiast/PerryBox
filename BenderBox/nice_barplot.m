@@ -1,7 +1,13 @@
-function nice_barplot(y,x,c1,c2, boxon)
+function nice_barplot(y,x,c1,c2, boxon, pointOn)
+
+if nargin < 3
+    c1 = [0 0 0];
+    c2 = [1 1 1];
+end
 
 if nargin < 5
     boxon = 1;
+    pointOn = 1;
 end
 y = y(~isnan(y)); %remove NaNs
 
@@ -30,5 +36,6 @@ else
 end
 %plot whiskers
 
-
-scatter(ones(length(y),1)*wisOffset+x,y,100,'MarkerEdgeColor',c1,'lineWidth',2);
+if pointOn
+    scatter(ones(length(y),1)*wisOffset+x,y,100,'MarkerEdgeColor',c1,'lineWidth',2);
+end

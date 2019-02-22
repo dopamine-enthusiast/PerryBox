@@ -21,8 +21,4 @@ set(gca,'fontsize',16,...
 ylabel(y_label);
 
 
-% for i=1:5
-%         
-%     plot([4 5],[cell2mat(cell_array(3+i,1)) cell2mat(cell_array(3+i,2))],'k');    
-%             
-% end
+

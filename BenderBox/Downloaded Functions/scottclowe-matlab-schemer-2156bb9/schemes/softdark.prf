@@ -1,0 +1,33 @@
+# softdark - MATLAB color scheme
+# Generated with schemer_export v1.4.0, on MATLAB 9.1.0.441655 (R2016b)
+# Tue Jan 22 18:32:00 PST 2019
+# To enable this color scheme in MATLAB use schemer_import, available at:
+#     https://github.com/scottclowe/matlab-schemer
+#     https://www.mathworks.com/matlabcentral/fileexchange/53862-matlab-schemer
+ColorsUseSystem=Bfalse
+ColorsUseMLintAutoFixBackground=Btrue
+Editor.VariableHighlighting.Automatic=Btrue
+Editor.NonlocalVariableHighlighting=Btrue
+EditorCodepadHighVisible=Btrue
+EditorCodeBlockDividers=Btrue
+Editorhighlight-caret-row-boolean=Bfalse
+EditorRightTextLineVisible=Btrue
+EditorRightTextLimitLineWidth=I1
+ColorsText=C-2830136
+ColorsBackground=C-13421773
+Colors_M_Keywords=C-16711681
+Colors_M_Comments=C-8934352
+Colors_M_Strings=C-2444289
+Colors_M_UnterminatedStrings=C-2534631
+Colors_M_SystemCommands=C-5075968
+Colors_M_Errors=C-65536
+Colors_HTML_HTMLLinks=C-16711681
+Colors_M_Warnings=C-27648
+ColorsMLintAutoFixBackground=C-9223357
+Editor.VariableHighlighting.Color=C-11639404
+Editor.NonlocalVariableHighlighting.TextColor=C-16735325
+Editorhighlight-lines=C-12632257
+Editorhighlight-caret-row-boolean-color=C-2167080
+EditorRightTextLimitLineColor=C-3355444
+Color_CmdWinWarnings=C-39936
+Color_CmdWinErrors=C-1703936

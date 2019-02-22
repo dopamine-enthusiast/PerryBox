@@ -1,7 +1,7 @@
 function outputTable = STDPBackpropAnalysis(scans)
 %This function pulls out relevant data from selected linescans and saves
 %data to the clipboard for adding to spreadsheet
-%example spreadsheet: https://docs.google.com/spreadsheets/d/1elJ_9HW6ENi8D14uhngSU-gYchyhgQMe3btaM7QcHl8/edit?hl=en#gid=0
+%example spreadsheet: https://docs.google.com/spreadsheets/d/1FeHELCzjmuskSraE-6JfSGZ9pgSoqU7ScDk0ZxQcmDw/edit#gid=2120696578
 
 show_plots = 1;
 
@@ -14,7 +14,7 @@ end
 for i=1:length(scans)
     scans_datenum(i) = datenum(scans(i).date);
 end
-[temp idx] = sort(scans_datenum);
+[temp, idx] = sort(scans_datenum);
 scans = scans(idx);
 
 %Find the nexus scan
@@ -87,7 +87,7 @@ for i=1:length(scans)
     [peak,tau] = decayFit(scans(i),decay_phase); %fit to an exponetial decay
     delta(j+1) = peak-baseline;
     x = 1:length(decay_phase);
-    y = peak*exp(tau*x);
+    y = peak*exp(tau*x); 
     baseline = y(end);
     
     if show_plots

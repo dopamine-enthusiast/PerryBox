@@ -8,6 +8,10 @@ function boxplots_from_cell_array(cell_array,y_label)
 % Het
 % [0,0.6824,0.9373]
 % [0.6392,0.8784,0.9686]
+% 
+% dKO
+% [0.8863    0.1647    0.4196]
+% [0.9490    0.6392    0.7490]
 
 for i=1:length(cell_array(1,:))
     
